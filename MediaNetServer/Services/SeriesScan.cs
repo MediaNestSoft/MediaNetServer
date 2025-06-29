@@ -34,7 +34,7 @@ namespace MediaNetServer.Services
             _seriesFileScan = seriesFileScan;
         }
 
-        public async Task ScanAndSaveAsync(string rootFolder)
+        public async Task ScanAndSaveSeriesAsync(string rootFolder)
         {
             // rootFolder 下有多个系列文件夹
             foreach (var seriesDir in Directory.GetDirectories(rootFolder))

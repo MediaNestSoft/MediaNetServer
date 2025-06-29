@@ -19,6 +19,10 @@ namespace MediaNetServer.Data.media.Models
         public int playhistory { get; set; } // 播放进度（秒）
 
         public string filePath { get; set; } // 文件路径
+        
+        // 外键
+        public Guid FolderId { get; set; }
+        public Folders Folder { get; set; } = null!;
 
         // 导航属性
         public MediaItem MediaItem { get; set; }
