@@ -1,8 +1,8 @@
-﻿using Media.Models;
+﻿using MediaNetServer.Data.media.Models;
 using System.ComponentModel.DataAnnotations;
 using System;
 
-namespace Media.Models
+namespace MediaNetServer.Data.media.Models
 {
     public class Token
     {

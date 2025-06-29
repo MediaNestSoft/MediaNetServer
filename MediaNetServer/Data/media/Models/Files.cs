@@ -1,7 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using MediaNetServer.Data.media.Models;
 
-namespace Media.Models
+namespace MediaNetServer.Data.media.Models
 {
     [Table("Files")]
     public class Files

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace Media.Models
+namespace MediaNetServer.Data.media.Models
 {
     public class User
     {

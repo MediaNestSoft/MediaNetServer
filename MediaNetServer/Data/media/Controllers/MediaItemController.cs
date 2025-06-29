@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Media.Models;
-using Media.Services;
+using MediaNetServer.Data.media.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MediaNetServer.Data.media.Services;
 
-namespace Media.Controllers
+namespace MediaNetServer.Data.media.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

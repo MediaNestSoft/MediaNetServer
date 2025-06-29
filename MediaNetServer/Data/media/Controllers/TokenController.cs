@@ -1,11 +1,11 @@
-﻿using Media.Models;  // 引入 User 模型
-using Media.Services;  // 引入 Token 服务
+﻿using MediaNetServer.Data.media.Models;  // 引入 User 模型
+using MediaNetServer.Data.media.Services;  // 引入 Token 服务
 using Microsoft.AspNetCore.Mvc;
 using System;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
-namespace Media.Controllers
+namespace MediaNetServer.Data.media.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

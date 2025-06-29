@@ -1,4 +1,4 @@
-﻿using Media.Models;  // 引入用户模型
+﻿using MediaNetServer.Data.media.Models;  // 引入用户模型
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Linq;
 using System.Security.Claims;
 
-namespace Media.Services
+namespace MediaNetServer.Data.media.Services
 {
     public class TokenService
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace Media.Models
+namespace MediaNetServer.Data.media.Models
 {
     public class MediaItem
     {
@@ -22,7 +22,7 @@ namespace Media.Models
 
         public double Rating { get; set; } // 媒体评分
 
-        public DateTime ReleaseDate { get; set; } // 发行日期
+        public DateTime? ReleaseDate { get; set; } // 发行日期
 
         public string Country { get; set; } // 发行国家
     }

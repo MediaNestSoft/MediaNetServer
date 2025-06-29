@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Media.Models
+namespace MediaNetServer.Data.media.Models
 {
     [Table("Seasons")]
     public class Seasons

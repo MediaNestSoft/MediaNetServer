@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Media.Services;  // 引入服务
-using Media.Models;    // 引入模型层
+using MediaNetServer.Data.media.Services;  // 引入服务
+using MediaNetServer.Data.media.Models;    // 引入模型层
 
-namespace Media.Controllers
+namespace MediaNetServer.Data.media.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

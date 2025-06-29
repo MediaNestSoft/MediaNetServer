@@ -1,9 +1,9 @@
-﻿using Media.Data;
-using Media.Models;  // 引入 User 类所在的命名空间
+﻿using MediaNetServer.Data.media.Data;
+using MediaNetServer.Data.media.Models;  // 引入 User 类所在的命名空间
 using System;
 using System.Linq;
 
-namespace Media.Services
+namespace MediaNetServer.Data.media.Services
 {
     public class UserService
     {
