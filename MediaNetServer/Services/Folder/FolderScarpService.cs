@@ -9,6 +9,7 @@ using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.TvShows;
 
 namespace MediaNetServer.Services.Folder;
 
@@ -27,31 +28,15 @@ public class FolderScraperService
     /// <summary>
     /// 入口：根据文件夹内容判断类型并分支处理
     /// </summary>
-    public async Task ScrapeFolderAsync(string rootPath)
+    public async Task<(List<Movie> Movies, List<TvEpisode> Episodes)> ScrapeFolderAsync(string rootPath)
     {
-        // 电影子目录
-        var moviesDir = Path.Combine(rootPath, "Movies");
-        if (System.IO.Directory.Exists(moviesDir))
-        {
-            Console.WriteLine($"Found Movies folder: {moviesDir}");
-            await ScrapeMoviesAsync(moviesDir);
-        }
-        else
-        {
-            Console.WriteLine($"Movies folder not found under {rootPath}");
-        }
+        var moviesDir  = Path.Combine(rootPath, "Movies");
+        var seriesDir  = Path.Combine(rootPath, "Series");
 
-        // 电视剧子目录
-        var seriesDir = Path.Combine(rootPath, "Series");
-        if (System.IO.Directory.Exists(seriesDir))
-        {
-            Console.WriteLine($"Found Series folder: {seriesDir}");
-            await ScrapeSeriesAsync(seriesDir);
-        }
-        else
-        {
-            Console.WriteLine($"Series folder not found under {rootPath}");
-        }
+        var movies   = System.IO.Directory.Exists(moviesDir)  ? await ScrapeMoviesAsync(moviesDir)   : new List<Movie>();
+        var episodes = System.IO.Directory.Exists(seriesDir)  ? await ScrapeSeriesAsync(seriesDir)  : new List<TvEpisode>();
+
+        return (movies, episodes);
     }
     
     private bool IsUnixHidden(string path)
@@ -62,8 +47,9 @@ public class FolderScraperService
     /// <summary>
     /// 处理电影目录：遍历所有视频文件，解析 Title/Year 并查询 TMDb 元数据
     /// </summary>
-    private async Task ScrapeMoviesAsync(string folderPath)
+    private async Task<List<Movie>> ScrapeMoviesAsync(string folderPath)
     {
+        var list = new List<Movie>();
         foreach (var file in System.IO.Directory.GetFiles(folderPath))
         {
             // 仅处理视频文件
@@ -110,15 +96,10 @@ public class FolderScraperService
             int mId = mResult.Id;
             
             var movieResult = await _tmdbClient.GetMovieAsync(mId);
-            if (movieResult == null)
-            {
-                Console.WriteLine($"未找到电影：{title} ({year})");
-                continue;
-            }
-            
-            Console.WriteLine($"[Movie] {title} ({year}) → TMDb ID: {mId}");
-            Console.WriteLine($"{movieResult.Title}, {movieResult.ReleaseDate?.Year}, {movieResult.Overview}");
+            if (movieResult != null)
+                list.Add(movieResult);
         }
+        return list;
     }
 
     /// <summary>
@@ -127,8 +108,9 @@ public class FolderScraperService
     /// 2) 遍历 Season 目录，解析分集；  
     /// 3) 查询 TMDb 剧集元数据
     /// </summary>
-    private async Task ScrapeSeriesAsync(string folderPath)
+    private async Task<List<TvEpisode>> ScrapeSeriesAsync(string folderPath)
     {
+        var list = new List<TvEpisode>();
         var files = System.IO.Directory.GetFiles(folderPath)
             .Where(f =>
                 !IsUnixHidden(f) &&
@@ -165,9 +147,9 @@ public class FolderScraperService
             // 获取该剧集指定季集的元数据
             var epData = await _tmdbClient.GetTvEpisodeAsync(TvId, seasonNumber, episodeNumber);
 
-            Console.WriteLine(
-                $"[Series] {seriesName} ({showYear}) → S{seasonNumber:00}E{episodeNumber:00}: {epData.Name}"
-            );
+            if (epData != null)
+                list.Add(epData);
         }
+        return list;
     }
 }

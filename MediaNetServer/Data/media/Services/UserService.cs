@@ -56,5 +56,19 @@ namespace MediaNetServer.Data.media.Services
                 _context.SaveChanges();
             }
         }
+        
+        /// <summary>
+        /// 验证用户名和密码是否匹配。
+        /// </summary>
+        /// <returns>如果用户名不存在，返回 null；存在但密码错误，返回 null；都正确返回对应的 User。</returns>
+        public User? ValidateCredentials(string username, string password)
+        {
+            var user = GetUserByUsername(username);
+            if (user == null)
+                return null;
+
+            bool ok = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            return ok ? user : null;
+        }
     }
 }

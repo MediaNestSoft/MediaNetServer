@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Media.Migrations
+namespace MediaNetServer.Migrations
 {
     [DbContext(typeof(MediaContext))]
     partial class MediaContextModelSnapshot : ModelSnapshot
@@ -22,7 +22,7 @@ namespace Media.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Media.Models.Episodes", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Episodes", b =>
                 {
                     b.Property<int>("epId")
                         .ValueGeneratedOnAdd()
@@ -63,7 +63,7 @@ namespace Media.Migrations
                     b.ToTable("Episodes");
                 });
 
-            modelBuilder.Entity("Media.Models.Files", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Files", b =>
                 {
                     b.Property<int>("fid")
                         .ValueGeneratedOnAdd()
@@ -97,7 +97,26 @@ namespace Media.Migrations
                     b.ToTable("Files");
                 });
 
-            modelBuilder.Entity("Media.Models.Genre", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Folders", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Folders");
+                });
+
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Genre", b =>
                 {
                     b.Property<int>("Gid")
                         .ValueGeneratedOnAdd()
@@ -117,7 +136,7 @@ namespace Media.Migrations
                     b.ToTable("Genres");
                 });
 
-            modelBuilder.Entity("Media.Models.History", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.History", b =>
                 {
                     b.Property<int>("historyId")
                         .ValueGeneratedOnAdd()
@@ -158,7 +177,7 @@ namespace Media.Migrations
                     b.ToTable("History");
                 });
 
-            modelBuilder.Entity("Media.Models.Images", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Images", b =>
                 {
                     b.Property<int>("imageId")
                         .ValueGeneratedOnAdd()
@@ -197,7 +216,7 @@ namespace Media.Migrations
                     b.ToTable("Images");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaCast", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaCast", b =>
                 {
                     b.Property<int>("PersonId")
                         .ValueGeneratedOnAdd()
@@ -227,7 +246,7 @@ namespace Media.Migrations
                     b.ToTable("MediaCasts");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaGenres", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaGenres", b =>
                 {
                     b.Property<int>("mediaGenreId")
                         .ValueGeneratedOnAdd()
@@ -250,7 +269,7 @@ namespace Media.Migrations
                     b.ToTable("MediaGenres");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaItem", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaItem", b =>
                 {
                     b.Property<int>("MediaId")
                         .ValueGeneratedOnAdd()
@@ -296,7 +315,7 @@ namespace Media.Migrations
                     b.ToTable("MediaItems");
                 });
 
-            modelBuilder.Entity("Media.Models.MovieDetail", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MovieDetail", b =>
                 {
                     b.Property<int>("MediaId")
                         .HasColumnType("int");
@@ -313,7 +332,7 @@ namespace Media.Migrations
                     b.ToTable("MovieDetails");
                 });
 
-            modelBuilder.Entity("Media.Models.Playlist", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Playlist", b =>
                 {
                     b.Property<int>("playlistId")
                         .ValueGeneratedOnAdd()
@@ -339,7 +358,7 @@ namespace Media.Migrations
                     b.ToTable("Playlists");
                 });
 
-            modelBuilder.Entity("Media.Models.PlaylistItems", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.PlaylistItems", b =>
                 {
                     b.Property<int>("playlistItemId")
                         .ValueGeneratedOnAdd()
@@ -368,7 +387,7 @@ namespace Media.Migrations
                     b.ToTable("PlaylistItems");
                 });
 
-            modelBuilder.Entity("Media.Models.Season", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Season", b =>
                 {
                     b.Property<int>("SeasonId")
                         .ValueGeneratedOnAdd()
@@ -393,7 +412,7 @@ namespace Media.Migrations
                     b.ToTable("Seasons");
                 });
 
-            modelBuilder.Entity("Media.Models.SeriesDetail", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.SeriesDetail", b =>
                 {
                     b.Property<int>("mediaId")
                         .HasColumnType("int");
@@ -412,7 +431,7 @@ namespace Media.Migrations
                     b.ToTable("SeriesDetail");
                 });
 
-            modelBuilder.Entity("Media.Models.Token", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Token", b =>
                 {
                     b.Property<Guid>("TokenId")
                         .ValueGeneratedOnAdd()
@@ -439,7 +458,7 @@ namespace Media.Migrations
                     b.ToTable("Tokens");
                 });
 
-            modelBuilder.Entity("Media.Models.User", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.User", b =>
                 {
                     b.Property<Guid>("UserId")
                         .ValueGeneratedOnAdd()
@@ -461,7 +480,7 @@ namespace Media.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Media.Models.WatchProgress", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.WatchProgress", b =>
                 {
                     b.Property<int>("watchProgressId")
                         .ValueGeneratedOnAdd()
@@ -496,34 +515,15 @@ namespace Media.Migrations
                     b.ToTable("WatchProgress");
                 });
 
-            modelBuilder.Entity("MediaNetServer.Data.Media.Models.Folders", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Episodes", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Path")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Folders");
-                });
-
-            modelBuilder.Entity("Media.Models.Episodes", b =>
-                {
-                    b.HasOne("Media.Models.Season", "Season")
+                    b.HasOne("MediaNetServer.Data.media.Models.Season", "Season")
                         .WithMany("Episodes")
                         .HasForeignKey("SeasonId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany("Episodes")
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -534,14 +534,14 @@ namespace Media.Migrations
                     b.Navigation("Season");
                 });
 
-            modelBuilder.Entity("Media.Models.Files", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Files", b =>
                 {
-                    b.HasOne("MediaNetServer.Data.Media.Models.Folders", "Folder")
+                    b.HasOne("MediaNetServer.Data.media.Models.Folders", "Folder")
                         .WithMany("Items")
                         .HasForeignKey("FolderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -552,15 +552,15 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.History", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.History", b =>
                 {
-                    b.HasOne("Media.Models.User", "User")
+                    b.HasOne("MediaNetServer.Data.media.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -571,9 +571,9 @@ namespace Media.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Media.Models.Images", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Images", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -582,9 +582,9 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaCast", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaCast", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -593,15 +593,15 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaGenres", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaGenres", b =>
                 {
-                    b.HasOne("Media.Models.Genre", "Genre")
+                    b.HasOne("MediaNetServer.Data.media.Models.Genre", "Genre")
                         .WithMany()
                         .HasForeignKey("genreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -612,9 +612,9 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.MovieDetail", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MovieDetail", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -623,9 +623,9 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.Playlist", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Playlist", b =>
                 {
-                    b.HasOne("Media.Models.User", "User")
+                    b.HasOne("MediaNetServer.Data.media.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -634,15 +634,15 @@ namespace Media.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Media.Models.PlaylistItems", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.PlaylistItems", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Media.Models.Playlist", "Playlist")
+                    b.HasOne("MediaNetServer.Data.media.Models.Playlist", "Playlist")
                         .WithMany()
                         .HasForeignKey("playlistId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -653,9 +653,9 @@ namespace Media.Migrations
                     b.Navigation("Playlist");
                 });
 
-            modelBuilder.Entity("Media.Models.Season", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Season", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany("Seasons")
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -664,9 +664,9 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.SeriesDetail", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.SeriesDetail", b =>
                 {
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -675,9 +675,9 @@ namespace Media.Migrations
                     b.Navigation("MediaItem");
                 });
 
-            modelBuilder.Entity("Media.Models.Token", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Token", b =>
                 {
-                    b.HasOne("Media.Models.User", "User")
+                    b.HasOne("MediaNetServer.Data.media.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -686,15 +686,15 @@ namespace Media.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Media.Models.WatchProgress", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.WatchProgress", b =>
                 {
-                    b.HasOne("Media.Models.User", "User")
+                    b.HasOne("MediaNetServer.Data.media.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Media.Models.MediaItem", "MediaItem")
+                    b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("mediaId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -705,21 +705,21 @@ namespace Media.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Media.Models.MediaItem", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Folders", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.MediaItem", b =>
                 {
                     b.Navigation("Episodes");
 
                     b.Navigation("Seasons");
                 });
 
-            modelBuilder.Entity("Media.Models.Season", b =>
+            modelBuilder.Entity("MediaNetServer.Data.media.Models.Season", b =>
                 {
                     b.Navigation("Episodes");
-                });
-
-            modelBuilder.Entity("MediaNetServer.Data.Media.Models.Folders", b =>
-                {
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

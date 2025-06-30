@@ -57,7 +57,7 @@ namespace MediaNetServer.Data.media.Data
                 .HasForeignKey(f => f.mediaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ✅ Files -> Folders
+            // Files -> Folders
             modelBuilder.Entity<Files>()
                 .HasOne(f => f.Folder)
                 .WithMany(folder => folder.Items)

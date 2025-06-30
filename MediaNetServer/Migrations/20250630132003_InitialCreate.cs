@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Media.Migrations
+namespace MediaNetServer.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -11,6 +11,19 @@ namespace Media.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Folders",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Path = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Folders", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Genres",
                 columns: table => new
@@ -68,6 +81,7 @@ namespace Media.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     fileId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     mediaId = table.Column<int>(type: "int", nullable: false),
+                    FolderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     playhistory = table.Column<int>(type: "int", nullable: false),
                     filePath = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
@@ -75,11 +89,17 @@ namespace Media.Migrations
                 {
                     table.PrimaryKey("PK_Files", x => x.fid);
                     table.ForeignKey(
+                        name: "FK_Files_Folders_FolderId",
+                        column: x => x.FolderId,
+                        principalTable: "Folders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_Files_MediaItems_mediaId",
                         column: x => x.mediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -94,7 +114,6 @@ namespace Media.Migrations
                     size = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     width = table.Column<int>(type: "int", nullable: false),
                     height = table.Column<int>(type: "int", nullable: false),
-                    seasonNumber = table.Column<int>(type: "int", nullable: true),
                     episodeNumber = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -105,7 +124,7 @@ namespace Media.Migrations
                         column: x => x.mediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -239,13 +258,13 @@ namespace Media.Migrations
                         column: x => x.mediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_History_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -266,7 +285,7 @@ namespace Media.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -311,13 +330,13 @@ namespace Media.Migrations
                         column: x => x.mediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_WatchProgress_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -370,13 +389,13 @@ namespace Media.Migrations
                         column: x => x.mediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PlaylistItems_Playlists_playlistId",
                         column: x => x.playlistId,
                         principalTable: "Playlists",
                         principalColumn: "playlistId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -388,6 +407,11 @@ namespace Media.Migrations
                 name: "IX_Episodes_SeasonId",
                 table: "Episodes",
                 column: "SeasonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Files_FolderId",
+                table: "Files",
+                column: "FolderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Files_mediaId",
@@ -498,6 +522,9 @@ namespace Media.Migrations
 
             migrationBuilder.DropTable(
                 name: "Seasons");
+
+            migrationBuilder.DropTable(
+                name: "Folders");
 
             migrationBuilder.DropTable(
                 name: "Genres");
