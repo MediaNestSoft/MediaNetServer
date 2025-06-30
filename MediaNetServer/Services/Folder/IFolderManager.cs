@@ -6,7 +6,7 @@ using MediaNetServer.Data.media.Models;
 
 namespace MediaNetServer.Services.Folder;
 
-public interface FolderManager
+public interface IFolderManager
 {
     Task<IEnumerable<Folders>> GetAllFoldersAsync();
     Task<Folders?> GetFolderByIdAsync(Guid id);

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using MediaNetServer.Services.Folder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using TMDbLib.Client;
 
@@ -23,7 +24,7 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 var scraper = app.Services.GetRequiredService<FolderScraperService>();
-var folder = "/Users/yizliu/Desktop/My Movie";
+var folder = "/Volumes/T9ExFAT/Vedios";
 if (!Directory.Exists(folder))
 {
     Console.Error.WriteLine($"错误：找不到路径 {folder}");

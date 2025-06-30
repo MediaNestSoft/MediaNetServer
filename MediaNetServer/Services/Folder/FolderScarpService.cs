@@ -1,14 +1,16 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Emby.Naming.Video;
-using Emby.Naming.TV;
 using Emby.Naming.Common;
+using Emby.Naming.TV;
+using Emby.Naming.Video;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
+using TMDbLib.Objects.Movies;
+
+namespace MediaNetServer.Services.Folder;
 
 public class FolderScraperService
 {
@@ -19,22 +21,37 @@ public class FolderScraperService
     public FolderScraperService(TMDbClient tmdbClient)
     {
         _tmdbClient = tmdbClient;
-            //_episodeResolver = new EpisodeResolver(_namingOptions);
+        //_episodeResolver = new EpisodeResolver(_namingOptions);
     }
 
     /// <summary>
     /// 入口：根据文件夹内容判断类型并分支处理
     /// </summary>
-    public async Task ScrapeFolderAsync(string folderPath)
+    public async Task ScrapeFolderAsync(string rootPath)
     {
-        //if (IsSeriesFolder(folderPath))
-        //{
-            await ScrapeSeriesAsync(folderPath);
-        //}
-        //else
-        //{
-         //   await ScrapeMoviesAsync(folderPath);
-        //}
+        // 电影子目录
+        var moviesDir = Path.Combine(rootPath, "Movies");
+        if (System.IO.Directory.Exists(moviesDir))
+        {
+            Console.WriteLine($"Found Movies folder: {moviesDir}");
+            await ScrapeMoviesAsync(moviesDir);
+        }
+        else
+        {
+            Console.WriteLine($"Movies folder not found under {rootPath}");
+        }
+
+        // 电视剧子目录
+        var seriesDir = Path.Combine(rootPath, "Series");
+        if (System.IO.Directory.Exists(seriesDir))
+        {
+            Console.WriteLine($"Found Series folder: {seriesDir}");
+            await ScrapeSeriesAsync(seriesDir);
+        }
+        else
+        {
+            Console.WriteLine($"Series folder not found under {rootPath}");
+        }
     }
     
     private bool IsUnixHidden(string path)
@@ -42,41 +59,22 @@ public class FolderScraperService
         return Path.GetFileName(path).StartsWith(".");
     }
 
-
-    /// <summary>
-    /// 判断一个目录是否为电视剧：  
-    ///  - 存在名为 Season X 的子目录；  
-    ///  - 或顶层文件名包含 S01E01 样式；  
-    /// </summary>
-    private bool IsSeriesFolder(string folderPath)
-    {
-        // 子目录命名：Season 01, Specials
-        if (Directory.GetDirectories(folderPath)
-            .Any(d => Regex.IsMatch(Path.GetFileName(d), @"^(Season|Specials)\s*\d+", RegexOptions.IgnoreCase)))
-        {
-            return true;
-        }
-        // 顶层文件名：SxxExx 模式
-        return Directory.GetFiles(folderPath)
-            .Any(f => Regex.IsMatch(Path.GetFileName(f), @"S\d{1,2}E\d{1,2}", RegexOptions.IgnoreCase));
-    }
-
     /// <summary>
     /// 处理电影目录：遍历所有视频文件，解析 Title/Year 并查询 TMDb 元数据
     /// </summary>
     private async Task ScrapeMoviesAsync(string folderPath)
     {
-        foreach (var file in Directory.GetFiles(folderPath))
+        foreach (var file in System.IO.Directory.GetFiles(folderPath))
         {
             // 仅处理视频文件
-            if (!VideoResolver.IsVideoFile("file", _namingOptions))
+            if (!VideoResolver.IsVideoFile(file, _namingOptions))
                 continue;
             if(IsUnixHidden(file))
                 continue;
 
             // 解析文件名
-            var info = VideoResolver.ResolveFile(path:"Cars.3.2017.2160p.BluRay.REMUX.HEVC.DTS-HD.MA.TrueHD.7.1.Atmos-老 K.mkv", namingOptions:_namingOptions);
-            var title = info.Name;
+            var info = VideoResolver.ResolveFile(path:file, namingOptions:_namingOptions);
+            var title = info.Name.Replace('.', ' ').Trim();
             var year  = info.Year;
             var safeYear = year ?? 0;
             
@@ -102,8 +100,24 @@ public class FolderScraperService
             // 调用 TMDb 搜索电影
             SearchContainer<SearchMovie> results = 
                 await _tmdbClient.SearchMovieAsync(query, year: safeYear);
-            var bestMatch = results.Results.FirstOrDefault();
-            Console.WriteLine($"[Movie] {title} ({year}) → TMDb ID: {bestMatch?.Id}");
+            if (results.Results.Count == 0)
+            {
+                Console.WriteLine($"没有找到 { query } ");
+                continue;
+            }
+
+            var mResult = results.Results.FirstOrDefault();
+            int mId = mResult.Id;
+            
+            var movieResult = await _tmdbClient.GetMovieAsync(mId);
+            if (movieResult == null)
+            {
+                Console.WriteLine($"未找到电影：{title} ({year})");
+                continue;
+            }
+            
+            Console.WriteLine($"[Movie] {title} ({year}) → TMDb ID: {mId}");
+            Console.WriteLine($"{movieResult.Title}, {movieResult.ReleaseDate?.Year}, {movieResult.Overview}");
         }
     }
 
@@ -115,7 +129,7 @@ public class FolderScraperService
     /// </summary>
     private async Task ScrapeSeriesAsync(string folderPath)
     {
-        var files = Directory.GetFiles(folderPath)
+        var files = System.IO.Directory.GetFiles(folderPath)
             .Where(f =>
                 !IsUnixHidden(f) &&
                 VideoResolver.IsVideoFile(path:f, _namingOptions)
@@ -128,11 +142,6 @@ public class FolderScraperService
             var episodeResolver = new EpisodeResolver(options1);
             var fileName = Path.GetFileNameWithoutExtension(file);
 
-            // 清洗出剧名和年份
-            //var clean = VideoResolver.CleanDateTime("Squid Game S03E04 1080p HEVC x265-MeGusta", Options);
-            //var showName = clean.Name;
-            //var showYear = clean.Year;
-
             // 解析出 season/episode
             EpisodeInfo? epInfo = episodeResolver.Resolve(path: file, isDirectory:false);
             var seasonNumber  = epInfo.SeasonNumber  ?? 1;
@@ -140,24 +149,25 @@ public class FolderScraperService
             var seriesName = epInfo.SeriesName;
 
             // 搜索剧集列表，并优先用年份过滤
-            
+            var searchResults = await _tmdbClient.SearchTvShowAsync(seriesName)
+                .ConfigureAwait(false);
 
-            //if (seriesMatch == null)
-            //{
-             //   Console.WriteLine($"[Warn] 未在 TMDb 找到：{showName} ({showYear})");
-             //   continue;
-            //}
+            if (searchResults.Results.Count == 0)
+            {
+                // not found
+                Console.WriteLine($"未在 TMDb 找到：{seriesName} ");
+                continue;
+            }
+            var sResults = searchResults.Results.FirstOrDefault();
+            int TvId = sResults.Id;
+            int showYear = sResults.FirstAirDate?.Year ?? 0;
 
             // 获取该剧集指定季集的元数据
-           /* var epData = await _tmdbClient.GetTvEpisodeAsync(
-                ,
-                seasonNumber,
-                episodeNumber
-            );*/
+            var epData = await _tmdbClient.GetTvEpisodeAsync(TvId, seasonNumber, episodeNumber);
 
-            //Console.WriteLine(
-            //    $"[Series] {showName} ({showYear}) → S{seasonNumber:00}E{episodeNumber:00}: {epData.Name}"
-            //);
+            Console.WriteLine(
+                $"[Series] {seriesName} ({showYear}) → S{seasonNumber:00}E{episodeNumber:00}: {epData.Name}"
+            );
         }
     }
 }
