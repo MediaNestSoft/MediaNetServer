@@ -22,6 +22,7 @@
       </PackageReference>
       <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.12.1" />
       <PackageReference Include="Microsoft.OpenApi" Version="1.6.24" />
+      <PackageReference Include="Org.OpenAPITools" Version="1.0.0" />
       <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="9.0.1" />
       <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.1" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
@@ -31,12 +32,28 @@
     <ItemGroup>
       <Compile Remove="Services\MovieScan.cs" />
       <Compile Remove="Services\SeriesScan.cs" />
+      <Compile Remove="Models\**" />
+      <Compile Remove="Data\Repositories\**" />
+      <Compile Remove="Services\Implementations\**" />
+      <Compile Remove="Controllers\GenresController.cs" />
+      <Compile Remove="Data\media\Controllers\**" />
     </ItemGroup>
 
     <ItemGroup>
         <None Update="appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Remove="Models\**" />
+        <None Remove="Data\Repositories\**" />
+        <None Remove="Services\Implementations\**" />
+        <None Remove="Data\media\Controllers\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Models\**" />
+      <EmbeddedResource Remove="Data\Repositories\**" />
+      <EmbeddedResource Remove="Services\Implementations\**" />
+      <EmbeddedResource Remove="Data\media\Controllers\**" />
     </ItemGroup>
 
 </Project>

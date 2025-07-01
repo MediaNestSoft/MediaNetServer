@@ -21,12 +21,13 @@ namespace MediaNetServer.Data.media.Services
                 .ToListAsync();
         }
 
-        public async Task<MediaGenres> GetByIdAsync(int id)
+        public async Task<List<MediaGenres>> GetByIdAsync(string id)
         {
             return await _context.MediaGenres
                 .Include(mg => mg.MediaItem)
                 .Include(mg => mg.Genre)
-                .FirstOrDefaultAsync(mg => mg.mediaGenreId == id);
+                .Where(mg => mg.Genre.genreId.ToString() == id)
+                .ToListAsync();
         }
 
         public async Task<MediaGenres> CreateAsync(MediaGenres mg)

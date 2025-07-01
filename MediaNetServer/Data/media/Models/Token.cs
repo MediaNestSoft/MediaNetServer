@@ -1,12 +1,14 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MediaNetServer.Data.media.Models
 {
     public class Token
     {
         [Key]
-        public Guid TokenId { get; set; }  // 主键
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int TokenId { get; set; } 
         public Guid UserId { get; set; }  // 外键，关联到 Users 表
         public string AccessToken { get; set; }  // 访问令牌
         public string RefreshToken { get; set; }  // 刷新令牌

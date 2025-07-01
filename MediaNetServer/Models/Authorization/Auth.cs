@@ -1,3 +1,5 @@
+using Org.OpenAPITools.Api;
+
 namespace MediaNetServer.Models.Authorization;
 public class LoginRequestDto
 {
