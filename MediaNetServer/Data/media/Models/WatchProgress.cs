@@ -17,8 +17,8 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("User")]
         public Guid UserId { get; set; }
 
-        [ForeignKey("MediaItem")]
-        public int mediaId { get; set; }
+        [ForeignKey("tmdbId")]
+        public int tmdbId { get; set; }
 
         public DateTime lastWatched { get; set; }
 

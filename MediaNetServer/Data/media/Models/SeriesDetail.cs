@@ -11,8 +11,11 @@ namespace MediaNetServer.Data.media.Models
     public class SeriesDetail
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; } // 主键，自增
+        
         [ForeignKey("MediaItem")]
-        public int mediaId { get; set; } // 主键 & 外键
+        public int mediaId { get; set; } // 外键
 
         public DateTime firstAirDate { get; set; } // 首播日期
         

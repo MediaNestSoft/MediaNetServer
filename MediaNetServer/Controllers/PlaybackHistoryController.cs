@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
+using Microsoft.Extensions.Logging;
 
 namespace MediaNetServer.Controllers;
 
@@ -64,7 +65,7 @@ public class PlaybackHistoryController : ControllerBase
         }
     }
 
-    [HttpGet("movies/{mediaId}/history")]
+    [HttpGet("movies/{tmdbId}/history")]
     public async Task<IActionResult> GetMoviePlaybackHistory(string userId, int mediaId)
     {
         try
@@ -98,7 +99,7 @@ public class PlaybackHistoryController : ControllerBase
         }
     }
 
-    [HttpGet("series/{mediaId}/history")]
+    [HttpGet("series/{tmdbId}/history")]
     public async Task<IActionResult> GetSeriesPlaybackHistory(string userId, int mediaId)
     {
         try

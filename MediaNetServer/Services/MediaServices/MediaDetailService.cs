@@ -6,6 +6,7 @@ using MediaNetServer.Data.media.Data;
 using MediaNetServer.Data.media.Models;
 using MediaNetServer.Services.Folder;
 using Microsoft.EntityFrameworkCore;
+using MediaNetServer.Data.media.Services;
 
 namespace MediaNetServer.Services.MediaServices;
 public class MediaDetailService
@@ -18,6 +19,7 @@ public class MediaDetailService
         _scraper = scraper;
         _context = context;
     }
+    
 
     /// <summary>
     /// 刮削并持久化媒体详情
@@ -29,6 +31,7 @@ public class MediaDetailService
         // 1. 处理电影
         foreach (var movie in movies)
         {
+            
             // 插入 MediaItem
             var item = new MediaItem
             {
@@ -70,7 +73,7 @@ public class MediaDetailService
                     TMDbId       = ep.ShowId,
                     Title        = ep.Name,
                     Type         = "Series",
-                    PosterPath   = string.Empty,
+                    PosterPath   = ep.,
                     BackdropPath = string.Empty,
                     LocalPath    = Path.Combine(rootPath, "Series"),
                     Rating       = 0,

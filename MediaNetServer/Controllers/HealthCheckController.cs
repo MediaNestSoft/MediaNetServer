@@ -40,10 +40,9 @@ public class HealthCheckController : ControllerBase
             dbMsg = $"error: {ex.Message}";
         }
 
-        // 构造返回的 DTO，仅包含数据库状态
         var response = new HealthResponse(
             isHealthy: new Option<bool?>(dbOk),
-            message: new Option<string?>(dbOk ? "Database connected" : "Database unreachable")
+            message: new Option<string?>(dbOk ? "Ok" : "unreachable")
         );
 
         if (!dbOk)

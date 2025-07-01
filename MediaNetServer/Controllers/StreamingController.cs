@@ -53,7 +53,7 @@ public class StreamingController : ControllerBase
         }
     }
 
-    [HttpGet("movie/{mediaId}/files")]
+    [HttpGet("movie/{tmdbId}/files")]
     public async Task<IActionResult> GetMovieFiles(int mediaId)
     {
         try

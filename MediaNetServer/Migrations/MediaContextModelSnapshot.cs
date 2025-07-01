@@ -43,7 +43,7 @@ namespace MediaNetServer.Migrations
                     b.Property<int>("episodeNumber")
                         .HasColumnType("int");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<string>("overview")
@@ -58,7 +58,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasIndex("SeasonId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("Episodes");
                 });
@@ -82,7 +82,7 @@ namespace MediaNetServer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<int>("playhistory")
@@ -92,7 +92,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasIndex("FolderId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("Files");
                 });
@@ -156,7 +156,7 @@ namespace MediaNetServer.Migrations
                     b.Property<bool>("isFinished")
                         .HasColumnType("bit");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<int>("position")
@@ -172,7 +172,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("History");
                 });
@@ -199,7 +199,7 @@ namespace MediaNetServer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<string>("size")
@@ -211,7 +211,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasKey("imageId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("Images");
                 });
@@ -257,14 +257,14 @@ namespace MediaNetServer.Migrations
                     b.Property<int>("genreId")
                         .HasColumnType("int");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.HasKey("mediaGenreId");
 
                     b.HasIndex("genreId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("MediaGenres");
                 });
@@ -369,7 +369,7 @@ namespace MediaNetServer.Migrations
                     b.Property<DateTime>("addedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<int>("playlistId")
@@ -380,7 +380,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasKey("playlistItemId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.HasIndex("playlistId");
 
@@ -414,7 +414,7 @@ namespace MediaNetServer.Migrations
 
             modelBuilder.Entity("MediaNetServer.Data.media.Models.SeriesDetail", b =>
                 {
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("firstAirDate")
@@ -426,7 +426,7 @@ namespace MediaNetServer.Migrations
                     b.Property<int>("numberOfSeasons")
                         .HasColumnType("int");
 
-                    b.HasKey("mediaId");
+                    b.HasKey("tmdbId");
 
                     b.ToTable("SeriesDetail");
                 });
@@ -497,7 +497,7 @@ namespace MediaNetServer.Migrations
                     b.Property<DateTime>("lastWatched")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("mediaId")
+                    b.Property<int>("tmdbId")
                         .HasColumnType("int");
 
                     b.Property<int>("position")
@@ -510,7 +510,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("mediaId");
+                    b.HasIndex("tmdbId");
 
                     b.ToTable("WatchProgress");
                 });
@@ -525,7 +525,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany("Episodes")
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -543,7 +543,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -562,7 +562,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -575,7 +575,7 @@ namespace MediaNetServer.Migrations
                 {
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -603,7 +603,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -638,7 +638,7 @@ namespace MediaNetServer.Migrations
                 {
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -668,7 +668,7 @@ namespace MediaNetServer.Migrations
                 {
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -696,7 +696,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("mediaId")
+                        .HasForeignKey("tmdbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

@@ -17,11 +17,19 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("MediaItem")]
         public int MediaId { get; set; }  // 外键，关联 MediaItems
 
-        [Required]
         public int SeasonNumber { get; set; } // 季数
 
-        [Required]
-        public string SeasonName { get; set; } = string.Empty; // 季名称
+        public string SeasonName { get; set; } // 季名称
+        
+        public string overview { get; set; } // 季概述
+        
+        public DateTime AirDate { get; set; }
+        
+        public int episodeCount { get; set; } // 集数
+        
+        public string posterPath { get; set; } // 海报路径
+        
+        public float rating { get; set; } // 评分
 
         [BindNever]
         [JsonIgnore]

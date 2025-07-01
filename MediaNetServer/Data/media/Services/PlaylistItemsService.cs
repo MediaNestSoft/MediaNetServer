@@ -42,7 +42,7 @@ namespace MediaNetServer.Data.media.Services
             if (existing == null) return false;
 
             existing.playlistId = item.playlistId;
-            existing.mediaId = item.mediaId;
+            existing.tmdbId = item.tmdbId;
             existing.addedAt = item.addedAt;
             existing.releaseDate = item.releaseDate;
 

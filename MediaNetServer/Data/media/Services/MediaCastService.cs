@@ -20,6 +20,14 @@ namespace MediaNetServer.Data.media.Services
             // 使用 EF Core 的异步查询，获取所有 MediaCast 数据并返回
             return await _context.MediaCasts.ToListAsync();
         }
+        
+        public async Task<List<MediaCast>> GetEpisodeCastAsync(int seriesId)
+        {
+            // 查询指定剧集、季和集的演员信息
+            return await _context.MediaCasts
+                .Where(c => c.MediaId == seriesId)
+                .ToListAsync();
+        }
 
         // 根据 personId 获取单个 MediaCast
         public async Task<MediaCast?> GetByPersonIdAsync(int personId)
@@ -31,7 +39,7 @@ namespace MediaNetServer.Data.media.Services
         // 创建新的 MediaCast
         public async Task<MediaCast?> CreateAsync(MediaCast cast)
         {
-            // 确保提供的 mediaId 对应的 MediaItem 已存在
+            // 确保提供的 tmdbId 对应的 MediaItem 已存在
             var mediaItem = await _context.MediaItems.FindAsync(cast.MediaId);
             if (mediaItem == null)
                 return null; // 如果 MediaItem 不存在，则不创建 MediaCast

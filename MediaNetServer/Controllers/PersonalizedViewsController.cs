@@ -1,55 +1,43 @@
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
+using Org.OpenAPITools.Client;
 using MediaNetServer.Data.media.Services;
+using Microsoft.Extensions.Logging;
 
 namespace MediaNetServer.Controllers;
 
 [ApiController]
-[Route("users/{userId}/views")]
+[Route("personal")]
 public class PersonalizedViewsController : ControllerBase
 {
     private readonly WatchProgressService _watchProgressService;
     private readonly MediaItemService _mediaItemService;
     private readonly ILogger<PersonalizedViewsController> _logger;
+    private readonly PlaylistService _playlistService;
+    private readonly EpisodesService _episodesSvc;
 
     public PersonalizedViewsController(WatchProgressService watchProgressService, 
-        MediaItemService mediaItemService, ILogger<PersonalizedViewsController> logger)
+        MediaItemService mediaItemService, ILogger<PersonalizedViewsController> logger,
+        PlaylistService playlistService, EpisodesService episodesSvc)
     {
         _watchProgressService = watchProgressService;
         _mediaItemService = mediaItemService;
         _logger = logger;
+        _playlistService = playlistService;
+        _episodesSvc = episodesSvc;
     }
 
     [HttpGet("continue-watching")]
-    public async Task<IActionResult> GetContinueWatching(string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetContinueWatching([FromQuery]string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
     {
         try
         {
             var watchProgresses = await _watchProgressService.GetContinueWatchingAsync(userId, limit, offset);
-            var continueWatchItems = new List<ContinueWatchItem>();
-
-            foreach (var wp in watchProgresses)
-            {
-                var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(wp.MediaId);
-                if (mediaItem != null)
-                {
-                    continueWatchItems.Add(new ContinueWatchItem
-                    {
-                        MediaId = mediaItem.Id,
-                        Title = mediaItem.Title,
-                        Type = mediaItem.Type,
-                        PosterPath = mediaItem.PosterPath,
-                        Progress = wp.Position,
-                        Duration = wp.Duration,
-                        LastWatched = wp.UpdatedAt
-                    });
-                }
-            }
 
             var response = new ContinueWatchResponse
             {
-                Items = continueWatchItems,
-                TotalCount = continueWatchItems.Count
+                Items = watchProgresses,
+                TotalCount = watchProgresses.Count
             };
 
             return Ok(response);
@@ -62,27 +50,51 @@ public class PersonalizedViewsController : ControllerBase
     }
 
     [HttpGet("recent-adds")]
-    public async Task<IActionResult> GetRecentAdds(string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetRecentAdds([FromQuery]string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
     {
         try
         {
             var recentMedia = await _mediaItemService.GetRecentlyAddedAsync(limit, offset);
-            var mediaItems = recentMedia.Select(m => new MediaOverview
-            {
-                Id = m.Id,
-                Title = m.Title,
-                Type = m.Type,
-                PosterPath = m.PosterPath,
-                Rating = m.Rating,
-                ReleaseDate = m.ReleaseDate
-            }).ToList();
 
+            var mediaItems = new List<MediaItem>();
+            foreach (var m in recentMedia)
+            {
+                // 判断是不是电影
+                bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
+
+                // 直接用枚举成员，不要写数字
+                var typeEnum = isMovie
+                    ? MediaItem.TypeEnum.Movie
+                    : MediaItem.TypeEnum.Series;
+
+                // 根据类型取不同的 additional
+                string? additionalInfo;
+                if (isMovie)
+                {
+                    additionalInfo = m.ReleaseDate.Year.ToString();
+                }
+                else
+                {
+                    var episode = await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId);
+                    additionalInfo = episode?.seasonNumber.ToString();
+                }
+
+                mediaItems.Add(new MediaItem(
+                    mediaId:    new Option<int?>(m.TMDbId),
+                    title:      new Option<string?>(m.Title),
+                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
+                    posterPath: new Option<string?>(m.PosterPath),
+                    additional: !string.IsNullOrEmpty(additionalInfo)
+                        ? new Option<string?>(additionalInfo)
+                        : default
+                ));
+            }
+
+            var totalCount = mediaItems.Count;
             var response = new MediaListResponse
             {
-                Media = mediaItems,
-                TotalCount = mediaItems.Count,
-                Page = offset / limit + 1,
-                TotalPages = (int)Math.Ceiling((double)mediaItems.Count / limit)
+                Items      = mediaItems,
+                TotalCount = totalCount
             };
 
             return Ok(response);

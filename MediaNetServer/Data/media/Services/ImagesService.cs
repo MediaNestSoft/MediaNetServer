@@ -19,10 +19,11 @@ namespace MediaNetServer.Data.media.Services
             return await _context.Images.ToListAsync();
         }
 
-        // 根据 id 获取单个 Image
-        public async Task<Images?> GetByIdAsync(int id)
+        // 获取单个 Image
+        public async Task<Images?> getImage(string path)
         {
-            return await _context.Images.FindAsync(id);
+            return await _context.Images
+                .FirstOrDefaultAsync(i => i.filePath == path);
         }
 
         // 新增 Image
@@ -43,9 +44,6 @@ namespace MediaNetServer.Data.media.Services
             existing.imageType = image.imageType;
             existing.mediaId = image.mediaId;
             existing.filePath = image.filePath;
-            existing.size = image.size;
-            existing.width = image.width;
-            existing.height = image.height;
             existing.episodeNumber = image.episodeNumber;
 
             await _context.SaveChangesAsync();
@@ -61,6 +59,11 @@ namespace MediaNetServer.Data.media.Services
             _context.Images.Remove(image);
             await _context.SaveChangesAsync();
             return true;
+        }
+        
+        public class ImageSettings
+        {
+            public string CachePath { get; set; } = string.Empty;
         }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System;
-using System.Collections.Generic;  // 必须加
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace MediaNetServer.Data.media.Models
@@ -10,6 +10,7 @@ namespace MediaNetServer.Data.media.Models
     public class MediaItem
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int MediaId { get; set; } // 主键
 
         public int TMDbId { get; set; } // TMDb的媒体ID
@@ -32,15 +33,18 @@ namespace MediaNetServer.Data.media.Models
 
         public string? Language { get; set; } // 语言
         
-        public List<string> Genre { get; set; } // 流派列表
+        public List<string>? Genre { get; set; } // 流派列表
         
         public string? Country { get; set; } // 国家
+        
+        public DateTime AddTime { get; set; } //媒体的添加时间
 
         // 下面是新增的导航属性，告诉EF Core这个媒体项有多个剧集
         [BindNever]
         [JsonIgnore]
         [ValidateNever]
         public virtual ICollection<Episodes> Episodes { get; set; } = new HashSet<Episodes>();
+        
         [BindNever]
         [JsonIgnore]
         [ValidateNever]

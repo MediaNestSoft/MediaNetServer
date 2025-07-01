@@ -1,4 +1,5 @@
 ﻿using MediaNetServer.Data.media.Models;
+using MediaNetServer.Services.MediaServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaNetServer.Data.media.Data
@@ -23,7 +24,25 @@ namespace MediaNetServer.Data.media.Data
         public DbSet<WatchProgress> WatchProgress { get; set; }
         public DbSet<History> History { get; set; }
         public DbSet<Episodes> Episodes { get; set; }
-        public DbSet<Folders> Folders { get; set; } // ✅ 如果有 Folders 表
+        public DbSet<Folders> Folders { get; set; }
+        public DbSet<WatchProgress> WatchProgresses { get; set; }
+        
+        public override async Task<int> SaveChangesAsync(
+            bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
+        {
+            // 对所有新增或修改的 WatchProgress 实体，更新 UpdatedAt
+            var entries = ChangeTracker
+                .Entries<WatchProgress>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+            foreach (var entry in entries)
+            {
+                entry.Entity.lastWatched = DateTime.UtcNow;
+            }
+
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,7 +101,7 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<PlaylistItems>()
                 .HasOne(pi => pi.MediaItem)
                 .WithMany()
-                .HasForeignKey(pi => pi.mediaId)
+                .HasForeignKey(pi => pi.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Playlists -> User
@@ -96,7 +115,7 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<WatchProgress>()
                 .HasOne(wp => wp.MediaItem)
                 .WithMany()
-                .HasForeignKey(wp => wp.mediaId)
+                .HasForeignKey(wp => wp.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // WatchProgress -> User

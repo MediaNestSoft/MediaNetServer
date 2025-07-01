@@ -12,10 +12,12 @@ namespace MediaNetServer.Data.media.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int playlistId { get; set; }
+        public int pId { get; set; }
 
         [ForeignKey("User")]
         public Guid UserId { get; set; }  
+        
+        public int playlistId { get; set; } // 播放列表标识，可重复
 
         [MaxLength(255)]
         public string name { get; set; }

@@ -18,10 +18,6 @@ namespace MediaNetServer.Data.media
         /// </summary>
         public static void AddDatabaseServices(WebApplicationBuilder builder)
         {
-            // 配置数据库连接
-            builder.Services.AddDbContext<MediaContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
             // 注册业务逻辑服务
             builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<TokenService>();

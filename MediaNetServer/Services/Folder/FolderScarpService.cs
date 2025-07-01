@@ -5,11 +5,14 @@ using System.Threading.Tasks;
 using Emby.Naming.Common;
 using Emby.Naming.TV;
 using Emby.Naming.Video;
+using MediaNetServer.Data.media.Data;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.TvShows;
+using MediaNetServer.Data.media.Models;
+using MediaNetServer.Data.media.Services;
 
 namespace MediaNetServer.Services.Folder;
 
@@ -18,11 +21,31 @@ public class FolderScraperService
     //private readonly EpisodeResolver _episodeResolver;
     private readonly TMDbClient _tmdbClient;
     private readonly NamingOptions _namingOptions = new NamingOptions();
+    private readonly MediaItemService _itemService;
+    private readonly MediaContext  _context;
 
-    public FolderScraperService(TMDbClient tmdbClient)
+    public FolderScraperService(TMDbClient tmdbClient, MediaItemService itemService,
+        MediaContext context)
     {
         _tmdbClient = tmdbClient;
+        _itemService = itemService;
+        _context = context;
         //_episodeResolver = new EpisodeResolver(_namingOptions);
+    }
+    
+    /// <summary>
+    /// 获取指定文件的最后写入时间。如果文件不存在或读取失败，就返回 UtcNow。
+    /// </summary>
+    private DateTime GetFileLastModifiedUtc(string filePath)
+    {
+        try
+        {
+            return File.GetLastWriteTimeUtc(filePath);
+        }
+        catch
+        {
+            return DateTime.UtcNow;
+        }
     }
 
     /// <summary>
@@ -33,10 +56,10 @@ public class FolderScraperService
         var moviesDir  = Path.Combine(rootPath, "Movies");
         var seriesDir  = Path.Combine(rootPath, "Series");
 
-        var movies   = System.IO.Directory.Exists(moviesDir)  ? await ScrapeMoviesAsync(moviesDir)   : new List<Movie>();
-        var episodes = System.IO.Directory.Exists(seriesDir)  ? await ScrapeSeriesAsync(seriesDir)  : new List<TvEpisode>();
+        //var movies   = System.IO.Directory.Exists(moviesDir)  ? await ScrapeMoviesAsync(moviesDir)   : new List<Movie>();
+        //var episodes = System.IO.Directory.Exists(seriesDir)  ? await ScrapeSeriesAsync(seriesDir)  : new List<TvEpisode>();
 
-        return (movies, episodes);
+        //return (movies, episodes);
     }
     
     private bool IsUnixHidden(string path)
@@ -47,7 +70,7 @@ public class FolderScraperService
     /// <summary>
     /// 处理电影目录：遍历所有视频文件，解析 Title/Year 并查询 TMDb 元数据
     /// </summary>
-    private async Task<List<Movie>> ScrapeMoviesAsync(string folderPath)
+    private async Task ScrapeMoviesAsync(string folderPath)
     {
         var list = new List<Movie>();
         foreach (var file in System.IO.Directory.GetFiles(folderPath))
@@ -57,6 +80,8 @@ public class FolderScraperService
                 continue;
             if(IsUnixHidden(file))
                 continue;
+            
+            DateTime lastModified = GetFileLastModifiedUtc(file);
 
             // 解析文件名
             var info = VideoResolver.ResolveFile(path:file, namingOptions:_namingOptions);
@@ -96,10 +121,39 @@ public class FolderScraperService
             int mId = mResult.Id;
             
             var movieResult = await _tmdbClient.GetMovieAsync(mId);
-            if (movieResult != null)
-                list.Add(movieResult);
+            if (movieResult == null)
+                continue;
+            
+            var logo = await _tmdbClient.GetMovieImagesAsync(movieResult.Id);
+            
+            var item = new MediaItem
+            {
+                TMDbId       = movieResult.Id,
+                Title        = movieResult.Title,
+                Type         = "Movie",
+                PosterPath   = movieResult.PosterPath ?? string.Empty,
+                BackdropPath = movieResult.BackdropPath ?? string.Empty,
+                LocalPath    = Path.Combine(rootPath, "Movies"),
+                Rating       = movieResult.VoteAverage,
+                ReleaseDate  = movieResult.ReleaseDate ?? DateTime.MinValue,
+                Country      = movieResult.ProductionCountries.FirstOrDefault()?.Iso_3166_1 ?? string.Empty,
+                AddTime      = lastModified,
+                Language     = movieResult.OriginalLanguage ?? string.Empty,
+                LogoPath     = logo.Logos.
+            };
+            _context.MediaItems.Add(item);
+            await _context.SaveChangesAsync();
+
+            // 插入 MovieDetail
+            var detail = new MovieDetail
+            {
+                MediaId  = item.MediaId,
+                Overview = movieResult.Overview ?? string.Empty,
+                Duration = movieResult.Runtime ?? 0
+            };
+            _context.MovieDetails.Add(detail);
         }
-        return list;
+        
     }
 
     /// <summary>
@@ -120,9 +174,10 @@ public class FolderScraperService
         foreach (var file in files)
         {
             var options1 = new NamingOptions();
-            string path2 = "/series/Squid Game S03E04 1080p HEVC x265-MeGusta.mkv";
             var episodeResolver = new EpisodeResolver(options1);
             var fileName = Path.GetFileNameWithoutExtension(file);
+            
+            DateTime lastModified = GetFileLastModifiedUtc(file);
 
             // 解析出 season/episode
             EpisodeInfo? epInfo = episodeResolver.Resolve(path: file, isDirectory:false);

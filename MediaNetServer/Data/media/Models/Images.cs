@@ -20,12 +20,6 @@ namespace MediaNetServer.Data.media.Models
 
         public string filePath { get; set; }
 
-        public string size { get; set; }
-
-        public int width { get; set; }
-
-        public int height { get; set; }
-
 
         public int? episodeNumber { get; set; }
 

@@ -13,9 +13,13 @@ namespace MediaNetServer.Data.media.Services
             _context = context;
         }
 
-        public async Task<List<Season>> GetAllSeasonsAsync()
+        public async Task<List<Season>> GetSeasonsByMediaIdAsync(int seriesId)
         {
-            return await _context.Seasons.ToListAsync();
+            return await _context.Seasons
+                .Include(s => s.MediaItem)
+                .Where(s => s.MediaItem.TMDbId == seriesId)
+                .OrderBy(s => s.SeasonNumber)
+                .ToListAsync();
         }
 
         public async Task<Season?> GetSeasonByIdAsync(int seasonId)

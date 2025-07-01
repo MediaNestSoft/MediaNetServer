@@ -401,7 +401,7 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Episodes_mediaId",
                 table: "Episodes",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Episodes_SeasonId",
@@ -416,12 +416,12 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Files_mediaId",
                 table: "Files",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_History_mediaId",
                 table: "History",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_History_UserId",
@@ -431,7 +431,7 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Images_mediaId",
                 table: "Images",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaCasts_MediaId",
@@ -446,12 +446,12 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_MediaGenres_mediaId",
                 table: "MediaGenres",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlaylistItems_mediaId",
                 table: "PlaylistItems",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlaylistItems_playlistId",
@@ -476,7 +476,7 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_WatchProgress_mediaId",
                 table: "WatchProgress",
-                column: "mediaId");
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WatchProgress_UserId",

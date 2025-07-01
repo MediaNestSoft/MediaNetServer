@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Org.OpenAPITools.Client;
 
 namespace MediaNetServer.Controllers;
 
@@ -18,6 +20,8 @@ public class MediaMetadataController : ControllerBase
     private readonly FilesService _filesService;
     private readonly ImagesService _imagesService;
     private readonly ILogger<MediaMetadataController> _logger;
+    private readonly string _imagesRoot;
+    private readonly PlaylistService _playlistService;
 
     public MediaMetadataController(
         MediaItemService mediaItemService,
@@ -28,7 +32,9 @@ public class MediaMetadataController : ControllerBase
         MediaCastService mediaCastService,
         FilesService filesService,
         ImagesService imagesService,
-        ILogger<MediaMetadataController> logger)
+        ILogger<MediaMetadataController> logger,
+        IOptions<ImagesService.ImageSettings> imageSettings,
+        PlaylistService playlistService)
     {
         _mediaItemService = mediaItemService;
         _movieDetailService = movieDetailService;
@@ -39,14 +45,16 @@ public class MediaMetadataController : ControllerBase
         _filesService = filesService;
         _imagesService = imagesService;
         _logger = logger;
+        _imagesRoot = imageSettings.Value.CachePath;
+        _playlistService = playlistService;
     }
 
     [HttpGet("detail")]
-    public async Task<IActionResult> GetMediaDetail([FromQuery] int mediaId)
+    public async Task<IActionResult> GetMediaDetail([FromQuery] int tmdbId)
     {
         try
         {
-            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(mediaId);
+            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(tmdbId);
             if (mediaItem == null)
             {
                 return NotFound(new Error { Message = "Media not found" });
@@ -54,42 +62,42 @@ public class MediaMetadataController : ControllerBase
 
             if (mediaItem.Type == "movie")
             {
-                var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaId);
+                var movieDetail = await _movieDetailService.GetByMediaIdAsync(tmdbId);
                 var movieResponse = new MovieDetail(
-                    movieDetail.MediaItem.TMDbId,
-                    movieDetail.MediaItem.Title,
-                    (MovieDetail.TypeEnum?)1,
-                    movieDetail.Overview,
-                    movieDetail.MediaItem.Genre,
-                    movieDetail.Duration,
-                    DateOnly.FromDateTime(movieDetail.MediaItem.ReleaseDate),
-                    movieDetail.MediaItem.LogoPath,
-                    movieDetail.MediaItem.PosterPath,
-                    movieDetail.MediaItem.BackdropPath,
-                    (float)movieDetail.MediaItem.Rating,
-                    movieDetail.MediaItem.Language
+                    new Option<int?>(movieDetail.MediaItem.TMDbId),
+                    new Option<string?>(movieDetail.MediaItem.Title),
+                    new Option<MovieDetail.TypeEnum?>(MovieDetail.TypeEnum.Movie),
+                    new Option<string?>(movieDetail.Overview),
+                    new Option<List<string>?>(movieDetail.MediaItem.Genre),
+                    new Option<int?>(movieDetail.Duration),
+                    new Option<DateOnly?>(DateOnly.FromDateTime(movieDetail.MediaItem.ReleaseDate)),
+                    new Option<string?>(movieDetail.MediaItem.LogoPath),
+                    new Option<string?>(movieDetail.MediaItem.PosterPath),
+                    new Option<string?>(movieDetail.MediaItem.BackdropPath),
+                    new Option<float?>((float)movieDetail.MediaItem.Rating),
+                    new Option<string?>(movieDetail.MediaItem.Language)
                 );
                 var response = new GetMediaDetail200Response(movieResponse);
                 return Ok(response);
             }
             else if (mediaItem.Type == "series")
             {
-                var seriesDetail = await _seriesDetailService.GetByIdAsync(mediaId);
+                var seriesDetail = await _seriesDetailService.GetByIdAsync(tmdbId);
                 var seriesResponse = new SeriesDetail(
-                    seriesDetail.MediaItem.TMDbId,
-                    seriesDetail.MediaItem.Title,
-                    (SeriesDetail.TypeEnum?)2,
-                    seriesDetail.overview,
-                    seriesDetail.MediaItem.Genre,
-                    DateOnly.FromDateTime(seriesDetail.firstAirDate),
-                    DateOnly.FromDateTime(seriesDetail.lastAirDate),
-                    seriesDetail.numberOfSeasons,
-                    seriesDetail.numberOfEpisodes,
-                    seriesDetail.MediaItem.LogoPath,
-                    seriesDetail.MediaItem.PosterPath,
-                    seriesDetail.MediaItem.BackdropPath,
-                    (float)seriesDetail.MediaItem.Rating,
-                    seriesDetail.MediaItem.Language
+                    new Option<int?>(seriesDetail.MediaItem.TMDbId),
+                    new Option<string?>(seriesDetail.MediaItem.Title),
+                    new Option<SeriesDetail.TypeEnum?>(SeriesDetail.TypeEnum.Series),
+                    new Option<string?>(seriesDetail.overview),
+                    new Option<List<string>?>(seriesDetail.MediaItem.Genre),
+                    new Option<DateOnly?>(DateOnly.FromDateTime(seriesDetail.firstAirDate)),
+                    new Option<DateOnly?>(DateOnly.FromDateTime(seriesDetail.lastAirDate)),
+                    new Option<int?>(seriesDetail.numberOfSeasons),
+                    new Option<int?>(seriesDetail.numberOfEpisodes),
+                    new Option<string?>(seriesDetail.MediaItem.LogoPath),
+                    new Option<string?>(seriesDetail.MediaItem.PosterPath),
+                    new Option<string?>(seriesDetail.MediaItem.BackdropPath),
+                    new Option<float?>((float)seriesDetail.MediaItem.Rating),
+                    new Option<string?>(seriesDetail.MediaItem.Language)
                 );
                 
                 var response = new GetMediaDetail200Response(seriesResponse);
@@ -100,7 +108,7 @@ public class MediaMetadataController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting media detail for {MediaId}", mediaId);
+            _logger.LogError(ex, "Error getting media detail for {MediaId}", tmdbId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
@@ -110,20 +118,12 @@ public class MediaMetadataController : ControllerBase
     {
         try
         {
-            var episode = await _episodesService.GetEpisodeBySeriesSeasonAndNumberAsync(seriesId, seasonNumber, episodeNumber);
-            if (episode == null)
-            {
-                return NotFound(new Error { Message = "Episode not found" });
-            }
-
-            var credits = await _mediaCastService.GetByMediaIdAsync(episode.mediaId);
+            var credits = await _mediaCastService.GetEpisodeCastAsync(seriesId);
             var creditList = credits.Select(c => new Credit
             {
-                Id = c.CastId,
                 Name = c.Name,
-                Character = c.Character,
-                Job = c.Job,
-                ProfilePath = c.ProfilePath
+                Department = c.Department,
+                PhotoPath = c.PersonUrl
             }).ToList();
 
             var response = new CreditsResponse
@@ -141,22 +141,23 @@ public class MediaMetadataController : ControllerBase
         }
     }
 
-    [HttpGet("media/episodes")]
+    [HttpGet("episodes")]
     public async Task<IActionResult> GetEpisodesList([FromQuery]int seriesId, [FromQuery]int seasonNumber)
     {
         try
         {
             var episodes = await _episodesService.GetEpisodesBySeriesAndSeasonAsync(seriesId, seasonNumber);
-            var episodeList = episodes.Select(e => new Episode
-            {
-                Id = e.EpisodeId,
-                EpisodeNumber = e.EpisodeNumber,
-                Name = e.Name,
-                Overview = e.Overview,
-                StillPath = e.StillPath,
-                AirDate = e.AirDate,
-                Runtime = e.Runtime
-            }).ToList();
+            var episodeList = episodes
+                .Select(e => new Episode(
+                    episodeNumber: new Option<int?>(e.episodeNumber),
+                    title:         new Option<string?>(e.episodeName),
+                    overview:      new Option<string?>(e.overview),
+                    stillPath:     new Option<string?>(e.stillPath),
+                    airDate:       new Option<DateOnly?>(DateOnly.FromDateTime(e.airDate)),
+                    duration:      new Option<int?>(e.duration),
+                    rating:        new Option<float?>((float)e.rating)
+                ))
+                .ToList();
 
             var response = new EpisodesResponse
             {
@@ -172,22 +173,23 @@ public class MediaMetadataController : ControllerBase
         }
     }
 
-    [HttpGet("seasons/{seriesId}")]
-    public async Task<IActionResult> GetSeasonsList(int seriesId)
+    [HttpGet("seasons")]
+    public async Task<IActionResult> GetSeasonsList([FromQuery]int seriesId)
     {
         try
         {
             var seasons = await _seasonService.GetSeasonsByMediaIdAsync(seriesId);
-            var seasonList = seasons.Select(s => new Season
-            {
-                Id = s.SeasonId,
-                SeasonNumber = s.SeasonNumber,
-                Name = s.Name,
-                Overview = s.Overview,
-                PosterPath = s.PosterPath,
-                AirDate = s.AirDate,
-                EpisodeCount = s.EpisodeCount
-            }).ToList();
+            var seasonList = seasons
+                .Select(s => new Season(
+                    seasonNumber: new Option<int?>(s.SeasonNumber),
+                    name:         new Option<string?>(s.SeasonName),
+                    overview:     new Option<string?>(s.overview),
+                    posterPath:   new Option<string?>(s.posterPath),
+                    airDate:      new Option<DateOnly?>(DateOnly.FromDateTime(s.AirDate)),
+                    episodeCount: new Option<int?>(s.episodeCount),
+                    rating:       new Option<float?>(s.rating)
+                ))
+                .ToList();
 
             var response = new SeasonsResponse
             {
@@ -208,14 +210,18 @@ public class MediaMetadataController : ControllerBase
     {
         try
         {
-            var image = await _imagesService.GetImageByPathAsync(path);
-            if (image?.ImageData == null)
-            {
-                return NotFound(new Error { Message = "Image not found" });
-            }
+            var fileOnDisk = Path.GetFullPath(Path.Combine(_imagesRoot, path));
 
-            // 返回图片的二进制数据
-            return File(image.ImageData, "image/jpeg"); // 或根据实际格式调整
+            // 防止越界
+            if (!fileOnDisk.StartsWith(_imagesRoot, StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new Error { Message = "Invalid image path" });
+
+            if (!System.IO.File.Exists(fileOnDisk))
+                return NotFound(new Error { Message = "Image not found" });
+
+            var data = await System.IO.File.ReadAllBytesAsync(fileOnDisk);
+            var contentType = GetContentType(fileOnDisk);
+            return File(data, contentType);
         }
         catch (Exception ex)
         {
@@ -223,9 +229,22 @@ public class MediaMetadataController : ControllerBase
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
+    
+    private string GetContentType(string filePath)
+    {
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        return ext switch
+        {
+            ".jpg"  => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png"  => "image/png",
+            ".webp" => "image/webp",
+            _       => "application/octet-stream"
+        };
+    }
 
-    [HttpGet("status/{userId}/{mediaId}")]
-    public async Task<IActionResult> GetMediaStatus(string userId, int mediaId)
+    [HttpGet("status")]
+    public async Task<IActionResult> GetMediaStatus([FromQuery]string userId, [FromQuery]int mediaId)
     {
         try
         {
@@ -237,13 +256,13 @@ public class MediaMetadataController : ControllerBase
 
             // 这里需要实现获取用户对媒体的状态逻辑
             // 暂时返回基本信息
-            var response = new MediaStatusResponse
-            {
-                MediaId = mediaId,
-                IsWatched = false, // 需要从WatchProgress获取
-                IsFavorite = false, // 需要从用户收藏获取
-                WatchProgress = 0 // 需要从WatchProgress获取
-            };
+            bool fav = await _playlistService.IsFavoriteAsync(userId, mediaId);
+            bool cnt = await _playlistService.IsInContinueWatchAsync(userId, mediaId);
+
+            var response = new MediaStatusResponse(
+                isInFavorites:     new Option<bool?>(fav),
+                isInContinueWatch: new Option<bool?>(cnt)
+            );
 
             return Ok(response);
         }

@@ -20,9 +20,24 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 根据 ID 获取单个媒体项
-        public async Task<MediaItem?> GetMediaItemByIdAsync(int id)
+        public async Task<MediaItem?> GetMediaItemByIdAsync(int tmdbId)
         {
-            return await _context.MediaItems.FindAsync(id);
+            return await _context.MediaItems
+                .FirstOrDefaultAsync(mi => mi.TMDbId == tmdbId);
+        }
+        
+        /// <summary>
+        /// 按 AddTime（文件最后修改时间）倒序分页返回媒体实体
+        /// </summary>
+        public async Task<List<MediaItem>> GetRecentlyAddedAsync(int limit, int offset)
+        {
+            int skip = offset * limit;
+            return await _context.MediaItems
+                .AsNoTracking()
+                .OrderByDescending(mi => mi.AddTime)
+                .Skip(skip)
+                .Take(limit)
+                .ToListAsync();
         }
 
         // 创建媒体项

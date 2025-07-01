@@ -24,29 +24,10 @@ builder.Services.AddSingleton(sp =>
     return client;
 });
 
-// 注册数据库服务
-builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<UserAuthService>();
-builder.Services.AddScoped<MediaItemService>();
-builder.Services.AddScoped<MovieDetailService>();
-builder.Services.AddScoped<SeriesDetailService>();
-builder.Services.AddScoped<GenreService>();
-builder.Services.AddScoped<MediaGenresService>();
-builder.Services.AddScoped<PlaylistService>();
-builder.Services.AddScoped<PlaylistItemsService>();
-builder.Services.AddScoped<HistoryService>();
-builder.Services.AddScoped<WatchProgressService>();
-builder.Services.AddScoped<SeasonService>();
-builder.Services.AddScoped<EpisodesService>();
-builder.Services.AddScoped<MediaCastService>();
-builder.Services.AddScoped<FilesService>();
-builder.Services.AddScoped<ImagesService>();
-builder.Services.AddScoped<FoldersService>();
-
 // 注册其他服务
 builder.Services.AddSingleton<FolderScraperService>();
 builder.Services.AddScoped<MediaDetailService>();
+builder.Services.Configure<ImagesService.ImageSettings>(builder.Configuration.GetSection("ImageSettings"));
 
 builder.Services.AddControllers();
 

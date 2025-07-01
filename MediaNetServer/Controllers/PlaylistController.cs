@@ -70,12 +70,12 @@ public class PlaylistController : ControllerBase
 
             var response = new CreatePlaylistResponse
             {
-                Id = createdPlaylist.playlistId,
+                Id = createdPlaylist.pId,
                 Name = createdPlaylist.name,
                 Description = createdPlaylist.description
             };
 
-            return Created($"/users/{userId}/playlists/{createdPlaylist.playlistId}", response);
+            return Created($"/users/{userId}/playlists/{createdPlaylist.pId}", response);
         }
         catch (Exception ex)
         {
