@@ -17,7 +17,6 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("Playlist")]
         public int playlistId { get; set; }     // 外键 → Playlists
 
-        [ForeignKey("MediaItem")]
         public int tmdbId { get; set; }        // 外键 → MediaItems
 
         public DateTime addedAt { get; set; }

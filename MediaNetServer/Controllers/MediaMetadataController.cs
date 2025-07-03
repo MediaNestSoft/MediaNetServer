@@ -50,19 +50,19 @@ public class MediaMetadataController : ControllerBase
     }
 
     [HttpGet("detail")]
-    public async Task<IActionResult> GetMediaDetail([FromQuery] int tmdbId)
+    public async Task<IActionResult> GetMediaDetail([FromQuery] int mediaId)
     {
         try
         {
-            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(tmdbId);
+            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(mediaId);
             if (mediaItem == null)
             {
                 return NotFound(new Error { Message = "Media not found" });
             }
 
-            if (mediaItem.Type == "movie")
+            if (mediaItem.Type == "Movie")
             {
-                var movieDetail = await _movieDetailService.GetByMediaIdAsync(tmdbId);
+                var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaId);
                 var movieResponse = new MovieDetail(
                     new Option<int?>(movieDetail.MediaItem.TMDbId),
                     new Option<string?>(movieDetail.MediaItem.Title),
@@ -80,9 +80,9 @@ public class MediaMetadataController : ControllerBase
                 var response = new GetMediaDetail200Response(movieResponse);
                 return Ok(response);
             }
-            else if (mediaItem.Type == "series")
+            else if (mediaItem.Type == "Series")
             {
-                var seriesDetail = await _seriesDetailService.GetByIdAsync(tmdbId);
+                var seriesDetail = await _seriesDetailService.GetByIdAsync(mediaId);
                 var seriesResponse = new SeriesDetail(
                     new Option<int?>(seriesDetail.MediaItem.TMDbId),
                     new Option<string?>(seriesDetail.MediaItem.Title),
@@ -108,7 +108,7 @@ public class MediaMetadataController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting media detail for {MediaId}", tmdbId);
+            _logger.LogError(ex, "Error getting media detail for {SeasonId}", mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
@@ -118,7 +118,8 @@ public class MediaMetadataController : ControllerBase
     {
         try
         {
-            var credits = await _mediaCastService.GetEpisodeCastAsync(seriesId);
+            var episodeId = await _episodesService.GetEpisode(seriesId, seasonNumber, episodeNumber);
+            var credits = await _mediaCastService.GetEpisodeCastAsync(episodeId.tmdbId);
             var creditList = credits.Select(c => new Credit
             {
                 Name = c.Name,
@@ -210,14 +211,17 @@ public class MediaMetadataController : ControllerBase
     {
         try
         {
-            var fileOnDisk = Path.GetFullPath(Path.Combine(_imagesRoot, path));
-
+            var cleanedPath = path.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var fileOnDisk = Path.GetFullPath(Path.Combine(_imagesRoot, cleanedPath));
             // 防止越界
             if (!fileOnDisk.StartsWith(_imagesRoot, StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new Error { Message = "Invalid image path" });
 
             if (!System.IO.File.Exists(fileOnDisk))
+            {
+                Console.WriteLine($"Image file not found: {fileOnDisk}");
                 return NotFound(new Error { Message = "Image not found" });
+            }
 
             var data = await System.IO.File.ReadAllBytesAsync(fileOnDisk);
             var contentType = GetContentType(fileOnDisk);
@@ -226,6 +230,7 @@ public class MediaMetadataController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting image {Path}", path);
+            Console.WriteLine(ex.ToString());
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
@@ -268,7 +273,7 @@ public class MediaMetadataController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting media status for user {UserId}, media {MediaId}", userId, mediaId);
+            _logger.LogError(ex, "Error getting media status for user {UserId}, media {SeasonId}", userId, mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }

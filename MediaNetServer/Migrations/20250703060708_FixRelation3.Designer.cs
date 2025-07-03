@@ -4,6 +4,7 @@ using MediaNetServer.Data.media.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaNetServer.Migrations
 {
     [DbContext(typeof(MediaContext))]
-    partial class MediaContextModelSnapshot : ModelSnapshot
+    [Migration("20250703060708_FixRelation3")]
+    partial class FixRelation3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -231,6 +234,7 @@ namespace MediaNetServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PersonUrl")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("tmdbId")
@@ -410,12 +414,13 @@ namespace MediaNetServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SeasonName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SeasonNumber")
                         .HasColumnType("int");
 
-                    b.Property<int?>("episodeCount")
+                    b.Property<int>("episodeCount")
                         .HasColumnType("int");
 
                     b.Property<string>("overview")
@@ -423,6 +428,7 @@ namespace MediaNetServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("posterPath")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<float>("rating")

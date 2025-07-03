@@ -27,11 +27,14 @@ namespace MediaNetServer.Data.media.Services
             return await _context.Seasons.FindAsync(seasonId);
         }
 
-        public async Task<Season> AddSeasonAsync(Season season)
+        public async Task<bool> AddSeasonAsync(Season season)
         {
+            if(await _context.Seasons
+                   .AnyAsync(s => s.SeasonId == season.SeasonId))
+                return true;
             _context.Seasons.Add(season);
             await _context.SaveChangesAsync();
-            return season;
+            return false;
         }
 
         public async Task<Season?> UpdateSeasonAsync(int seasonId, Season season)

@@ -17,18 +17,17 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("User")]
         public Guid UserId { get; set; }
 
-        [ForeignKey("MediaItem")]
-        public int mediaId { get; set; }
+        public int tmdbId { get; set; }
 
-        public DateTime watchedAt { get; set; }
+        public DateTime? watchedAt { get; set; }
 
-        public int position { get; set; }
+        public int? position { get; set; }
 
         public int duration { get; set; }
 
-        public int seasonNumber { get; set; }
+        public int? seasonNumber { get; set; }
 
-        public int episodeNumber { get; set; }
+        public int? episodeNumber { get; set; }
 
         public bool isFinished { get; set; }
 

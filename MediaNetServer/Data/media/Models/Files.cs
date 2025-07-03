@@ -14,15 +14,14 @@ namespace MediaNetServer.Data.media.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int fid { get; set; } // 自增主键
 
-        public string fileId { get; set; } // 文件 ID
+        public string? fileId { get; set; } // 文件 ID
 
-        [ForeignKey("MediaItem")]
-        public int mediaId { get; set; } // 外键：关联 MediaItems
+        public int tmdbId { get; set; } // 外键：关联 MediaItems
 
         [ForeignKey("Folder")]
         public Guid? FolderId { get; set; } // 新增：外键，关联 Folders，可为空
 
-        public int playhistory { get; set; } // 播放进度（秒）
+        //public int playhistory { get; set; } // 播放进度（秒）
 
         public string filePath { get; set; } // 文件路径
 

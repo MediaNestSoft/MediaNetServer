@@ -45,8 +45,8 @@ public class FilesService
 
         // 更新字段
         existFile.fileId = file.fileId;
-        existFile.mediaId = file.mediaId;
-        existFile.playhistory = file.playhistory;
+        existFile.tmdbId = file.tmdbId;
+        //existFile.playhistory = file.playhistory;
         existFile.filePath = file.filePath;
 
         await _context.SaveChangesAsync();

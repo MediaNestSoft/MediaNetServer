@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MediaNetServer.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -47,12 +47,16 @@ namespace MediaNetServer.Migrations
                     TMDbId = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PosterPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    BackdropPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LocalPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PosterPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BackdropPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LogoPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LocalPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Rating = table.Column<double>(type: "float", nullable: false),
                     ReleaseDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Country = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Language = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Genre = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AddTime = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,9 +84,8 @@ namespace MediaNetServer.Migrations
                     fid = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     fileId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    mediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
                     FolderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    playhistory = table.Column<int>(type: "int", nullable: false),
                     filePath = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -95,8 +98,8 @@ namespace MediaNetServer.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Files_MediaItems_mediaId",
-                        column: x => x.mediaId,
+                        name: "FK_Files_MediaItems_tmdbId",
+                        column: x => x.tmdbId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Restrict);
@@ -109,19 +112,16 @@ namespace MediaNetServer.Migrations
                     imageId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     imageType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    mediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
                     filePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    size = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    width = table.Column<int>(type: "int", nullable: false),
-                    height = table.Column<int>(type: "int", nullable: false),
                     episodeNumber = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Images", x => x.imageId);
                     table.ForeignKey(
-                        name: "FK_Images_MediaItems_mediaId",
-                        column: x => x.mediaId,
+                        name: "FK_Images_MediaItems_tmdbId",
+                        column: x => x.tmdbId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Restrict);
@@ -133,17 +133,18 @@ namespace MediaNetServer.Migrations
                 {
                     PersonId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    MediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Department = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PersonUrl = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    PersonUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MediaItemMediaId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MediaCasts", x => x.PersonId);
                     table.ForeignKey(
-                        name: "FK_MediaCasts_MediaItems_MediaId",
-                        column: x => x.MediaId,
+                        name: "FK_MediaCasts_MediaItems_MediaItemMediaId",
+                        column: x => x.MediaItemMediaId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Cascade);
@@ -202,7 +203,12 @@ namespace MediaNetServer.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     MediaId = table.Column<int>(type: "int", nullable: false),
                     SeasonNumber = table.Column<int>(type: "int", nullable: false),
-                    SeasonName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    SeasonName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    overview = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AirDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    episodeCount = table.Column<int>(type: "int", nullable: false),
+                    posterPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    rating = table.Column<float>(type: "real", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -219,14 +225,18 @@ namespace MediaNetServer.Migrations
                 name: "SeriesDetail",
                 columns: table => new
                 {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     mediaId = table.Column<int>(type: "int", nullable: false),
                     firstAirDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    lastAirDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     numberOfSeasons = table.Column<int>(type: "int", nullable: false),
-                    numberOfEpisodes = table.Column<int>(type: "int", nullable: false)
+                    numberOfEpisodes = table.Column<int>(type: "int", nullable: false),
+                    overview = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SeriesDetail", x => x.mediaId);
+                    table.PrimaryKey("PK_SeriesDetail", x => x.Id);
                     table.ForeignKey(
                         name: "FK_SeriesDetail_MediaItems_mediaId",
                         column: x => x.mediaId,
@@ -242,20 +252,20 @@ namespace MediaNetServer.Migrations
                     historyId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    mediaId = table.Column<int>(type: "int", nullable: false),
-                    watchedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    position = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
+                    watchedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    position = table.Column<int>(type: "int", nullable: true),
                     duration = table.Column<int>(type: "int", nullable: false),
-                    seasonNumber = table.Column<int>(type: "int", nullable: false),
-                    episodeNumber = table.Column<int>(type: "int", nullable: false),
+                    seasonNumber = table.Column<int>(type: "int", nullable: true),
+                    episodeNumber = table.Column<int>(type: "int", nullable: true),
                     isFinished = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_History", x => x.historyId);
                     table.ForeignKey(
-                        name: "FK_History_MediaItems_mediaId",
-                        column: x => x.mediaId,
+                        name: "FK_History_MediaItems_tmdbId",
+                        column: x => x.tmdbId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Restrict);
@@ -271,15 +281,16 @@ namespace MediaNetServer.Migrations
                 name: "Playlists",
                 columns: table => new
                 {
-                    playlistId = table.Column<int>(type: "int", nullable: false)
+                    pId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    playlistId = table.Column<int>(type: "int", nullable: false),
                     name = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     isSystem = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Playlists", x => x.playlistId);
+                    table.PrimaryKey("PK_Playlists", x => x.pId);
                     table.ForeignKey(
                         name: "FK_Playlists_Users_UserId",
                         column: x => x.UserId,
@@ -292,7 +303,8 @@ namespace MediaNetServer.Migrations
                 name: "Tokens",
                 columns: table => new
                 {
-                    TokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TokenId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     AccessToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -316,7 +328,7 @@ namespace MediaNetServer.Migrations
                     watchProgressId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    mediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
                     lastWatched = table.Column<DateTime>(type: "datetime2", nullable: false),
                     position = table.Column<int>(type: "int", nullable: false),
                     seasonNumber = table.Column<int>(type: "int", nullable: false),
@@ -326,8 +338,8 @@ namespace MediaNetServer.Migrations
                 {
                     table.PrimaryKey("PK_WatchProgress", x => x.watchProgressId);
                     table.ForeignKey(
-                        name: "FK_WatchProgress_MediaItems_mediaId",
-                        column: x => x.mediaId,
+                        name: "FK_WatchProgress_MediaItems_tmdbId",
+                        column: x => x.tmdbId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Restrict);
@@ -346,12 +358,16 @@ namespace MediaNetServer.Migrations
                     epId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     mediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
+                    airDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SeasonId = table.Column<int>(type: "int", nullable: false),
+                    seasonNumber = table.Column<int>(type: "int", nullable: false),
                     episodeNumber = table.Column<int>(type: "int", nullable: false),
                     episodeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     duration = table.Column<int>(type: "int", nullable: false),
                     overview = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    stillPath = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    stillPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    rating = table.Column<double>(type: "float", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -377,7 +393,7 @@ namespace MediaNetServer.Migrations
                     playlistItemId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     playlistId = table.Column<int>(type: "int", nullable: false),
-                    mediaId = table.Column<int>(type: "int", nullable: false),
+                    tmdbId = table.Column<int>(type: "int", nullable: false),
                     addedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     releaseDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -385,8 +401,8 @@ namespace MediaNetServer.Migrations
                 {
                     table.PrimaryKey("PK_PlaylistItems", x => x.playlistItemId);
                     table.ForeignKey(
-                        name: "FK_PlaylistItems_MediaItems_mediaId",
-                        column: x => x.mediaId,
+                        name: "FK_PlaylistItems_MediaItems_tmdbId",
+                        column: x => x.tmdbId,
                         principalTable: "MediaItems",
                         principalColumn: "MediaId",
                         onDelete: ReferentialAction.Restrict);
@@ -394,14 +410,14 @@ namespace MediaNetServer.Migrations
                         name: "FK_PlaylistItems_Playlists_playlistId",
                         column: x => x.playlistId,
                         principalTable: "Playlists",
-                        principalColumn: "playlistId",
+                        principalColumn: "pId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Episodes_mediaId",
                 table: "Episodes",
-                column: "tmdbId");
+                column: "mediaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Episodes_SeasonId",
@@ -414,12 +430,12 @@ namespace MediaNetServer.Migrations
                 column: "FolderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Files_mediaId",
+                name: "IX_Files_tmdbId",
                 table: "Files",
                 column: "tmdbId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_History_mediaId",
+                name: "IX_History_tmdbId",
                 table: "History",
                 column: "tmdbId");
 
@@ -429,14 +445,14 @@ namespace MediaNetServer.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Images_mediaId",
+                name: "IX_Images_tmdbId",
                 table: "Images",
                 column: "tmdbId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MediaCasts_MediaId",
+                name: "IX_MediaCasts_MediaItemMediaId",
                 table: "MediaCasts",
-                column: "MediaId");
+                column: "MediaItemMediaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaGenres_genreId",
@@ -446,17 +462,17 @@ namespace MediaNetServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_MediaGenres_mediaId",
                 table: "MediaGenres",
-                column: "tmdbId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PlaylistItems_mediaId",
-                table: "PlaylistItems",
-                column: "tmdbId");
+                column: "mediaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlaylistItems_playlistId",
                 table: "PlaylistItems",
                 column: "playlistId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlaylistItems_tmdbId",
+                table: "PlaylistItems",
+                column: "tmdbId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Playlists_UserId",
@@ -469,12 +485,17 @@ namespace MediaNetServer.Migrations
                 column: "MediaId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SeriesDetail_mediaId",
+                table: "SeriesDetail",
+                column: "mediaId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tokens_UserId",
                 table: "Tokens",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_WatchProgress_mediaId",
+                name: "IX_WatchProgress_tmdbId",
                 table: "WatchProgress",
                 column: "tmdbId");
 

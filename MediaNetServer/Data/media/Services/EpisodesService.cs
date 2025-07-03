@@ -21,7 +21,7 @@ namespace MediaNetServer.Data.media.Services
                 .Include(e => e.MediaItem)
                 .Include(e => e.Season)
                 .Where(e =>
-                    e.MediaItem.TMDbId == seriesId && e.seasonNumber == seasonNumber
+                    e.MediaItem.TMDbId == seriesId && e.Season.SeasonNumber == seasonNumber
                 )
                 .ToListAsync();
 
@@ -37,10 +37,10 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 根据ID查询单集
-        public async Task<Episodes> GetByEpisodeImdbIdAsync(int imdbId)
+        public async Task<Episodes> GetByEpisodeImdbIdAsync(int tmdbId)
         {
             return await _context.Episodes
-                .Where(e => e.tmdbId == imdbId)
+                .Where(e => e.tmdbId == tmdbId)
                 .Select(e => new Episodes
                     {
                         epId = e.epId,
@@ -61,11 +61,12 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 新增剧集
-        public async Task<Episodes> CreateAsync(Episodes episode)
+        public async Task CreateAsync(Episodes episode)
         {
+            if(await _context.Episodes.AnyAsync(e => e.tmdbId == episode.tmdbId))
+                return;
             _context.Episodes.Add(episode);
             await _context.SaveChangesAsync();
-            return episode;
         }
 
         // 更新剧集
@@ -94,6 +95,35 @@ namespace MediaNetServer.Data.media.Services
             _context.Episodes.Remove(exist);
             await _context.SaveChangesAsync();
             return true;
+        }
+        
+        public async Task<Episodes> GetEpisode(int tmdbId, int seasonNumber, int episodeNumber)
+        {
+            var media = await _context.MediaItems
+                .AsNoTracking()
+                .SingleOrDefaultAsync(m => m.TMDbId == tmdbId);
+            if (media == null)
+            {
+                return null;
+            }
+
+            var season = await _context.Seasons
+                .AsNoTracking()
+                .SingleOrDefaultAsync(s =>
+                    s.MediaId      == media.MediaId &&
+                    s.SeasonNumber == seasonNumber);
+            if (season == null)
+            {
+                return null;
+            }
+
+            var episode = await _context.Episodes
+                .AsNoTracking()
+                .SingleOrDefaultAsync(e =>
+                    e.SeasonId      == season.SeasonId &&
+                    e.episodeNumber == episodeNumber);
+
+            return episode;
         }
     }
 }

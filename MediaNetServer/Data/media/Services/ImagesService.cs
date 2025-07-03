@@ -27,11 +27,12 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 新增 Image
-        public async Task<Images> AddAsync(Images image)
+        public async Task AddAsync(Images image)
         {
+            var exists = await _context.MediaItems.AnyAsync(x => x.TMDbId == image.tmdbId);
+            if (!exists) throw new InvalidOperationException($"No MediaItem with MediaId {image.tmdbId}");
             _context.Images.Add(image);
             await _context.SaveChangesAsync();
-            return image;
         }
 
         // 更新 Image
@@ -42,7 +43,7 @@ namespace MediaNetServer.Data.media.Services
 
             // 更新字段
             existing.imageType = image.imageType;
-            existing.mediaId = image.mediaId;
+            existing.tmdbId = image.tmdbId;
             existing.filePath = image.filePath;
             existing.episodeNumber = image.episodeNumber;
 

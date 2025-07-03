@@ -47,6 +47,13 @@ namespace MediaNetServer.Data.media.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            modelBuilder.Entity<MediaCast>()
+                .HasOne(mc => mc.MediaItem)
+                .WithMany()
+                .HasPrincipalKey(mi => mi.TMDbId)
+                .HasForeignKey(mc => mc.tmdbId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Episodes -> MediaItem
             modelBuilder.Entity<Episodes>()
@@ -73,7 +80,8 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<Files>()
                 .HasOne(f => f.MediaItem)
                 .WithMany()
-                .HasForeignKey(f => f.mediaId)
+                .HasPrincipalKey(m => m.TMDbId)
+                .HasForeignKey(f => f.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Files -> Folders
@@ -87,8 +95,9 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<Images>()
                 .HasOne(i => i.MediaItem)
                 .WithMany()
-                .HasForeignKey(i => i.mediaId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasPrincipalKey(m => m.TMDbId)       // 指定主表的外键字段是 TMDbId，而不是默认的主键
+                .HasForeignKey(i => i.tmdbId)         // 指定 Images 这边用 tmdbId 作为外键
+                .OnDelete(DeleteBehavior.Cascade);
 
             // PlaylistItems -> Playlist
             modelBuilder.Entity<PlaylistItems>()
@@ -101,6 +110,7 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<PlaylistItems>()
                 .HasOne(pi => pi.MediaItem)
                 .WithMany()
+                .HasPrincipalKey(m => m.TMDbId)
                 .HasForeignKey(pi => pi.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -115,6 +125,7 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<WatchProgress>()
                 .HasOne(wp => wp.MediaItem)
                 .WithMany()
+                .HasPrincipalKey(m  => m.TMDbId)
                 .HasForeignKey(wp => wp.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -129,7 +140,8 @@ namespace MediaNetServer.Data.media.Data
             modelBuilder.Entity<History>()
                 .HasOne(h => h.MediaItem)
                 .WithMany()
-                .HasForeignKey(h => h.mediaId)
+                .HasPrincipalKey(h => h.TMDbId)
+                .HasForeignKey(h => h.tmdbId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // History -> User

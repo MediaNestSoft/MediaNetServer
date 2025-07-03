@@ -27,11 +27,12 @@ namespace MediaNetServer.Data.media.Services
                 .FirstOrDefaultAsync(s => s.mediaId == mediaId);
         }
 
-        public async Task<SeriesDetail> CreateAsync(SeriesDetail detail)
+        public async Task CreateAsync(SeriesDetail detail, bool same)
         {
+            if (!same)
+                return;
             _context.SeriesDetail.Add(detail);
             await _context.SaveChangesAsync();
-            return detail;
         }
 
         public async Task<bool> UpdateAsync(int mediaId, SeriesDetail detail)

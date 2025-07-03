@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
+using Microsoft.Extensions.Logging;
+using Org.OpenAPITools.Client;
 
 namespace MediaNetServer.Controllers;
 
@@ -10,34 +12,58 @@ public class SearchController : ControllerBase
 {
     private readonly MediaItemService _mediaItemService;
     private readonly ILogger<SearchController> _logger;
+    private readonly SeasonService _seasonService;
 
-    public SearchController(MediaItemService mediaItemService, ILogger<SearchController> logger)
+    public SearchController(MediaItemService mediaItemService, ILogger<SearchController> logger,
+        SeasonService seasonService)
     {
         _mediaItemService = mediaItemService;
         _logger = logger;
+        _seasonService = seasonService;
     }
 
-    [HttpGet]
+    [HttpGet("title")]
     public async Task<IActionResult> SearchByTitle([FromQuery] string q, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
     {
         try
         {
-            var mediaItems = await _mediaItemService.SearchByTitleAsync(q, limit, offset);
-            var searchResults = mediaItems.Select(m => new MediaOverview
+            var allMatches = await _mediaItemService.SearchByTitleAsync(q);
+            var matched = new List<MediaItem>();
+
+            var totalCount = allMatches.Count;
+
+            var paged = allMatches
+                .OrderBy(m => m.Title)
+                .Skip(offset * limit)
+                .Take(limit)
+                .ToList();
+            
+            var mediaItems = new List<MediaItem>();
+            foreach (var m in paged)
             {
-                Id = m.Id,
-                Title = m.Title,
-                Type = m.Type,
-                PosterPath = m.PosterPath,
-                Rating = m.Rating,
-                ReleaseDate = m.ReleaseDate
-            }).ToList();
+                bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
+                var typeEnum = isMovie
+                    ? MediaItem.TypeEnum.Movie
+                    : MediaItem.TypeEnum.Series;
+                var seasonNum = await _seasonService.GetSeasonsByMediaIdAsync(m.TMDbId);
+
+                string? additional = isMovie
+                    ? m.ReleaseDate.Year.ToString()
+                    : seasonNum[0].SeasonNumber.ToString();
+
+                mediaItems.Add(new MediaItem(
+                    mediaId:    new Option<int?>(m.TMDbId),
+                    title:      new Option<string?>(m.Title),
+                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
+                    posterPath: new Option<string?>(m.PosterPath),
+                    additional: new Option<string?>(additional)
+                ));
+            }
 
             var response = new SearchResponse
             {
-                Results = searchResults,
-                TotalCount = searchResults.Count, // 实际应该获取总数
-                Query = q
+                Items    = mediaItems,
+                TotalCount = totalCount
             };
 
             return Ok(response);
@@ -54,7 +80,7 @@ public class SearchController : ControllerBase
     {
         try
         {
-            var mediaItems = await _mediaItemService.SearchByTitleAsync(q, limit, 0);
+            var mediaItems = await _mediaItemService.SearchByTitleAsync(q);
             var suggestions = mediaItems.Select(m => m.Title).Distinct().Take(limit).ToList();
 
             var response = new AutocompleteResponse

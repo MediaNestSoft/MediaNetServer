@@ -4,6 +4,7 @@ using MediaNetServer.Data.media.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaNetServer.Migrations
 {
     [DbContext(typeof(MediaContext))]
-    partial class MediaContextModelSnapshot : ModelSnapshot
+    [Migration("20250703055818_FixRelation")]
+    partial class FixRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -226,11 +229,15 @@ namespace MediaNetServer.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("MediaItemMediaId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PersonUrl")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("tmdbId")
@@ -238,7 +245,7 @@ namespace MediaNetServer.Migrations
 
                     b.HasKey("PersonId");
 
-                    b.HasIndex("tmdbId");
+                    b.HasIndex("MediaItemMediaId");
 
                     b.ToTable("MediaCasts");
                 });
@@ -410,12 +417,13 @@ namespace MediaNetServer.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SeasonName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SeasonNumber")
                         .HasColumnType("int");
 
-                    b.Property<int?>("episodeCount")
+                    b.Property<int>("episodeCount")
                         .HasColumnType("int");
 
                     b.Property<string>("overview")
@@ -423,6 +431,7 @@ namespace MediaNetServer.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("posterPath")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<float>("rating")
@@ -584,7 +593,6 @@ namespace MediaNetServer.Migrations
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
                         .HasForeignKey("tmdbId")
-                        .HasPrincipalKey("TMDbId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -629,8 +637,7 @@ namespace MediaNetServer.Migrations
                 {
                     b.HasOne("MediaNetServer.Data.media.Models.MediaItem", "MediaItem")
                         .WithMany()
-                        .HasForeignKey("tmdbId")
-                        .HasPrincipalKey("TMDbId")
+                        .HasForeignKey("MediaItemMediaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

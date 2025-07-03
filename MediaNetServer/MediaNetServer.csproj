@@ -36,6 +36,8 @@
       <Compile Remove="Services\Implementations\**" />
       <Compile Remove="Controllers\GenresController.cs" />
       <Compile Remove="Data\media\Controllers\**" />
+      <Compile Remove="Services\MediaServices\MediaDetailService.cs" />
+      <Compile Remove="Controllers\PlaylistController.cs" />
     </ItemGroup>
 
     <ItemGroup>

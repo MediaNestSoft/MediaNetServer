@@ -15,8 +15,7 @@ namespace MediaNetServer.Data.media.Models
 
         public string imageType { get; set; }
 
-        [ForeignKey("MediaItem")]
-        public int mediaId { get; set; }
+        public int tmdbId { get; set; }
 
         public string filePath { get; set; }
 

@@ -16,7 +16,7 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("MediaItem")]
         public int mediaId { get; set; } // 关联的媒体项ID
 
-        public int tmdbId { get; set; } // tmdbId
+        public int tmdbId { get; set; }
         
         public DateTime airDate { get; set; } // 首播日期
         
@@ -27,7 +27,7 @@ namespace MediaNetServer.Data.media.Models
 
         public int episodeNumber { get; set; } // 集数
         public string episodeName { get; set; } // 集名称
-        public int duration { get; set; } // 时长（秒）
+        public int duration { get; set; } // 时长（分）
         public string overview { get; set; } // 集概述
         public string stillPath { get; set; } // 海报路径
         

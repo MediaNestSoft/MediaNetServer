@@ -1,10 +1,12 @@
 using System;
 using System.Linq;
+using System.Net.Mime;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Emby.Naming.Common;
 using Emby.Naming.TV;
 using Emby.Naming.Video;
+using Jellyfin.Data.Entities.Libraries;
 using MediaNetServer.Data.media.Data;
 using TMDbLib.Client;
 using TMDbLib.Objects.General;
@@ -13,6 +15,10 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.TvShows;
 using MediaNetServer.Data.media.Models;
 using MediaNetServer.Data.media.Services;
+using MediaNetServer.Services.MediaServices;
+using Microsoft.Extensions.Logging;
+using Movie = TMDbLib.Objects.Movies.Movie;
+using Season = MediaNetServer.Data.media.Models.Season;
 
 namespace MediaNetServer.Services.Folder;
 
@@ -23,14 +29,32 @@ public class FolderScraperService
     private readonly NamingOptions _namingOptions = new NamingOptions();
     private readonly MediaItemService _itemService;
     private readonly MediaContext  _context;
+    private readonly MediaCastService _castService;
+    private readonly ImagesService _imagesService;
+    private readonly ImageCacheService _iCacheService;
+    private readonly SeriesDetailService _seriesDetailService;
+    private readonly MovieDetailService _movieDetailService;
+    private readonly SeasonService _seasonService;
+    private readonly EpisodesService _episodeService;
+    private readonly HistoryService _historyService;
 
     public FolderScraperService(TMDbClient tmdbClient, MediaItemService itemService,
-        MediaContext context)
+        MediaContext context, MediaCastService castService, ImagesService imagesService,
+        ImageCacheService iCacheService, SeriesDetailService seriesDetailService, MovieDetailService movieDetailService,
+        SeasonService seasonService, EpisodesService episodeService, HistoryService historyService)
     {
         _tmdbClient = tmdbClient;
         _itemService = itemService;
         _context = context;
-        //_episodeResolver = new EpisodeResolver(_namingOptions);
+        _castService = castService;
+        _imagesService = imagesService;
+        _iCacheService = iCacheService;
+        _seriesDetailService = seriesDetailService;
+        _movieDetailService = movieDetailService;
+        _seasonService = seasonService;
+        _episodeService = episodeService;
+        _historyService = historyService;
+       // _episodeResolver = new EpisodeResolver(_namingOptions);
     }
     
     /// <summary>
@@ -51,13 +75,15 @@ public class FolderScraperService
     /// <summary>
     /// 入口：根据文件夹内容判断类型并分支处理
     /// </summary>
-    public async Task<(List<Movie> Movies, List<TvEpisode> Episodes)> ScrapeFolderAsync(string rootPath)
+    public async Task ScrapeFolderAsync(string rootPath)
     {
         var moviesDir  = Path.Combine(rootPath, "Movies");
         var seriesDir  = Path.Combine(rootPath, "Series");
 
-        //var movies   = System.IO.Directory.Exists(moviesDir)  ? await ScrapeMoviesAsync(moviesDir)   : new List<Movie>();
-        //var episodes = System.IO.Directory.Exists(seriesDir)  ? await ScrapeSeriesAsync(seriesDir)  : new List<TvEpisode>();
+        if(System.IO.Directory.Exists(moviesDir)) 
+            await ScrapeMoviesAsync(moviesDir);
+        if(System.IO.Directory.Exists(seriesDir)) 
+            await ScrapeSeriesAsync(seriesDir);
 
         //return (movies, episodes);
     }
@@ -120,38 +146,105 @@ public class FolderScraperService
             var mResult = results.Results.FirstOrDefault();
             int mId = mResult.Id;
             
-            var movieResult = await _tmdbClient.GetMovieAsync(mId);
-            if (movieResult == null)
-                continue;
+            //var movieResult = await _tmdbClient.GetMovieAsync(mId);
+            //if (mResult == null)
+            //    continue;
             
-            var logo = await _tmdbClient.GetMovieImagesAsync(movieResult.Id);
+            var extraMethods = MovieMethods.Credits | MovieMethods.Images;
+            
+            var extra = await _tmdbClient.GetMovieAsync(mId,
+                language: "zh-CN",
+                extraMethods: extraMethods,
+                cancellationToken: CancellationToken.None
+                );
+            if(extra == null)
+                continue;
+
+            var logoImage = await _tmdbClient.GetMovieImagesAsync(mId);
             
             var item = new MediaItem
             {
-                TMDbId       = movieResult.Id,
-                Title        = movieResult.Title,
+                TMDbId       = extra.Id,
+                Title        = extra.Title,
                 Type         = "Movie",
-                PosterPath   = movieResult.PosterPath ?? string.Empty,
-                BackdropPath = movieResult.BackdropPath ?? string.Empty,
-                LocalPath    = Path.Combine(rootPath, "Movies"),
-                Rating       = movieResult.VoteAverage,
-                ReleaseDate  = movieResult.ReleaseDate ?? DateTime.MinValue,
-                Country      = movieResult.ProductionCountries.FirstOrDefault()?.Iso_3166_1 ?? string.Empty,
+                PosterPath   = extra.PosterPath ?? string.Empty,
+                BackdropPath = extra.BackdropPath ?? string.Empty,
+                LocalPath    = file,
+                Rating       = extra.VoteAverage,
+                ReleaseDate  = extra.ReleaseDate ?? DateTime.MinValue,
+                Country      = extra.ProductionCountries.FirstOrDefault()?.Iso_3166_1 ?? string.Empty,
                 AddTime      = lastModified,
-                Language     = movieResult.OriginalLanguage ?? string.Empty,
-                LogoPath     = logo.Logos.
+                Language     = extra.OriginalLanguage ?? string.Empty,
+                LogoPath     = logoImage.Logos[0].FilePath ?? string.Empty,
+                Genre        = extra.Genres.Select(g => g.Name).ToList()
             };
-            _context.MediaItems.Add(item);
-            await _context.SaveChangesAsync();
+            var same = await _itemService.CreateMediaItemAsync(item);
 
             // 插入 MovieDetail
             var detail = new MovieDetail
             {
-                MediaId  = item.MediaId,
-                Overview = movieResult.Overview ?? string.Empty,
-                Duration = movieResult.Runtime ?? 0
+                MediaId = item.MediaId,
+                Overview = extra.Overview ?? string.Empty,
+                Duration = extra.Runtime ?? 0
             };
-            _context.MovieDetails.Add(detail);
+            await _movieDetailService.CreateAsync(detail,same);
+
+            var poster = new Data.media.Models.Images
+            {
+                tmdbId = extra.Id,
+                imageType = "Poster",
+                filePath = extra.PosterPath
+            };
+            await _imagesService.AddAsync(poster);
+            var backdrop = new Data.media.Models.Images
+            {
+                tmdbId = extra.Id,
+                imageType = "Backdrop",
+                filePath = extra.BackdropPath
+            };
+            await _imagesService.AddAsync(backdrop);
+            var logo = new Data.media.Models.Images
+            {
+                tmdbId = extra.Id,
+                imageType = "Logo",
+                filePath = logoImage.Logos[0].FilePath
+            };
+            await _imagesService.AddAsync(logo);
+            
+            
+            await _iCacheService.CacheImageAsync(extra.PosterPath);
+            await _iCacheService.CacheImageAsync(extra.BackdropPath);
+            await _iCacheService.CacheImageAsync(logoImage.Logos[0].FilePath);
+
+            var files = new Files
+            {
+                tmdbId = extra.Id,
+                //playhistory = 0,
+                filePath = file
+            };
+            _context.Files.Add(files);
+
+            var casts = extra.Credits.Cast
+                .Select(c => new MediaCast
+                {
+                    tmdbId     = extra.Id,
+                    Name       = c.Name,
+                    Department = c.Character,
+                    PersonUrl  = c.ProfilePath    // 头像路径
+                })
+                .ToList();
+            casts.AddRange(
+                extra.Credits.Crew
+                    .Select(c => new MediaCast
+                    {
+                        tmdbId     = extra.Id,
+                        Name       = c.Name,
+                        Department = c.Job,
+                        PersonUrl  = c.ProfilePath
+                    })
+            );
+            
+            await _castService.CreateAsync(casts);
         }
         
     }
@@ -162,7 +255,7 @@ public class FolderScraperService
     /// 2) 遍历 Season 目录，解析分集；  
     /// 3) 查询 TMDb 剧集元数据
     /// </summary>
-    private async Task<List<TvEpisode>> ScrapeSeriesAsync(string folderPath)
+    private async Task ScrapeSeriesAsync(string folderPath)
     {
         var list = new List<TvEpisode>();
         var files = System.IO.Directory.GetFiles(folderPath)
@@ -170,12 +263,18 @@ public class FolderScraperService
                 !IsUnixHidden(f) &&
                 VideoResolver.IsVideoFile(path:f, _namingOptions)
             );
+        var options1 = new NamingOptions();
+        var episodeResolver = new EpisodeResolver(options1);
         
         foreach (var file in files)
         {
-            var options1 = new NamingOptions();
-            var episodeResolver = new EpisodeResolver(options1);
-            var fileName = Path.GetFileNameWithoutExtension(file);
+            // 仅处理视频文件
+            if (!VideoResolver.IsVideoFile(file, _namingOptions))
+                continue;
+            if(IsUnixHidden(file))
+                continue;
+            var info = VideoResolver.ResolveFile(path:file, namingOptions:_namingOptions);
+            var title = info.Name.Replace('.', ' ').Trim();
             
             DateTime lastModified = GetFileLastModifiedUtc(file);
 
@@ -186,25 +285,177 @@ public class FolderScraperService
             var seriesName = epInfo.SeriesName;
 
             // 搜索剧集列表，并优先用年份过滤
-            var searchResults = await _tmdbClient.SearchTvShowAsync(seriesName)
+            var searchResults = await _tmdbClient.SearchTvShowAsync(title)
                 .ConfigureAwait(false);
 
-            if (searchResults.Results.Count == 0)
+            if (searchResults == null)
             {
                 // not found
-                Console.WriteLine($"未在 TMDb 找到：{seriesName} ");
+                Console.WriteLine($"未在 TMDb 找到：{title} ");
                 continue;
             }
             var sResults = searchResults.Results.FirstOrDefault();
+            
+            if (sResults == null)
+            {
+                Console.WriteLine($"未能从 TMDb 搜索结果中找到剧集：{title}");
+                continue;
+            }
+
             int TvId = sResults.Id;
             int showYear = sResults.FirstAirDate?.Year ?? 0;
+            
+            var series = await _tmdbClient.GetTvShowAsync(TvId, language:"zh-CN", extraMethods:TvShowMethods.Credits);
+            if (series == null)
+            {
+                Console.WriteLine($"未能获取剧集详情：{title} ");
+                continue;
+            }
+            
+            var logoImage = await _tmdbClient.GetTvShowImagesAsync(series.Id);
+
+            var item = new MediaItem
+            {
+                TMDbId = TvId,
+                Title = series.Name,
+                Type = "Series",
+                PosterPath = series.PosterPath ?? string.Empty,
+                BackdropPath = series.BackdropPath ?? string.Empty,
+                LocalPath = file,
+                Rating = series.VoteAverage,
+                ReleaseDate = series.FirstAirDate ?? DateTime.MinValue,
+                Country = series.ProductionCountries.FirstOrDefault()?.Iso_3166_1 ?? string.Empty,
+                AddTime = lastModified,
+                Language = series.OriginalLanguage ?? string.Empty,
+                Genre = series.Genres.Select(g => g.Name).ToList(),
+                LogoPath = logoImage.Logos[0].FilePath ?? string.Empty
+            };
+            var same = await _itemService.CreateMediaItemAsync(item);
+
+            var detail = new SeriesDetail
+            {
+                mediaId = item.MediaId,
+                firstAirDate = series.FirstAirDate ?? DateTime.MinValue,
+                lastAirDate = series.LastAirDate ?? DateTime.MinValue,
+                numberOfEpisodes = series.NumberOfEpisodes,
+                numberOfSeasons = series.NumberOfSeasons,
+                overview = series.Overview,
+            };
+            await _seriesDetailService.CreateAsync(detail, same);
+
+            var poster = new Data.media.Models.Images
+            {
+                tmdbId = series.Id,
+                imageType = "Poster",
+                filePath = series.PosterPath
+            };
+            var backdrop = new Data.media.Models.Images
+            {
+                tmdbId = series.Id,
+                imageType = "Backdrop",
+                filePath = series.BackdropPath
+            };
+            var logo = new Data.media.Models.Images
+            {
+                tmdbId = series.Id,
+                imageType = "Logo",
+                filePath = logoImage.Logos[0].FilePath
+            };
+            if (!same)
+            {
+                await _imagesService.AddAsync(poster);
+                await _imagesService.AddAsync(backdrop);
+                await _imagesService.AddAsync(logo);
+                await _iCacheService.CacheImageAsync(series.PosterPath);
+                await _iCacheService.CacheImageAsync(series.BackdropPath);
+                await _iCacheService.CacheImageAsync(logoImage.Logos[0].FilePath);
+            }
+            
+
+            // 获取 season
+            var season = await _tmdbClient.GetTvSeasonAsync(TvId, seasonNumber, language: "zh-CN");
+            if (season == null)
+            {
+                Console.WriteLine($"未能获取季信息：{seriesName} S{seasonNumber}");
+                continue;
+            }
+            var seasonItem = new Season
+            {
+                SeasonId = season.Id ?? 0,
+                MediaId = item.MediaId,
+                SeasonNumber = seasonNumber,
+                SeasonName = season.Name,
+                overview = season.Overview ?? string.Empty,
+                AirDate = season.AirDate ?? DateTime.MinValue,
+                posterPath = season.PosterPath ?? string.Empty,
+                rating = (float)season.VoteAverage,
+                episodeCount = season.Episodes.Count,
+            };
+            var sameSeason = await _seasonService.AddSeasonAsync(seasonItem);
+
+            var seasonPoster = new Data.media.Models.Images
+            {
+                tmdbId = season.Id ?? 0,
+                imageType = "SeasonPoster",
+                filePath = season.PosterPath,
+            };
+            if (!sameSeason)
+                await _imagesService.AddAsync(seasonPoster);
 
             // 获取该剧集指定季集的元数据
             var epData = await _tmdbClient.GetTvEpisodeAsync(TvId, seasonNumber, episodeNumber);
+            if (epData == null)
+            {
+                Console.WriteLine($"未能获取剧集信息：{seriesName} S{seasonNumber} E{episodeNumber}");
+                continue;
+            }
 
-            if (epData != null)
-                list.Add(epData);
+            var episodeItem = new Episodes
+            {
+                mediaId = item.MediaId,
+                tmdbId = epData.Id ?? 0,
+                airDate = epData.AirDate ?? DateTime.MinValue,
+                SeasonId = season.Id ?? 0,
+                seasonNumber = epData.SeasonNumber,
+                episodeNumber = epData.EpisodeNumber,
+                episodeName = epData.Name ?? string.Empty,
+                duration = epData.Runtime ?? 0,
+                overview = epData.Overview ?? string.Empty,
+                stillPath = epData.StillPath ?? string.Empty,
+                rating = (float)epData.VoteAverage,
+            };
+            await _episodeService.CreateAsync(episodeItem);
+
+            var episodeCrew = epData.Credits.Cast
+                .Select(c => new MediaCast
+                {
+                    tmdbId     = epData.Id ?? 0,
+                    Name       = c.Name,
+                    Department = c.Character,
+                    PersonUrl  = c.ProfilePath
+                })
+                .ToList();
+            episodeCrew.AddRange(
+                epData.Credits.Crew
+                    .Select(c => new MediaCast
+                    {
+                        tmdbId     = epData.Id ?? 0,
+                        Name       = c.Name,
+                        Department = c.Job,
+                        PersonUrl  = c.ProfilePath
+                    })
+            );
+            await _castService.CreateAsync(episodeCrew);
+            
+            var episodeFile = new Files
+            {
+                tmdbId = epData.Id ?? 0,
+                //playhistory = 0,
+                filePath = file
+            };
+            await _context.Files.AddAsync(episodeFile);
+            await _iCacheService.CacheImageAsync(epData.StillPath);
         }
-        return list;
+        
     }
 }

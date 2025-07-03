@@ -37,19 +37,12 @@ namespace MediaNetServer.Data.media.Services
         
         
 
-        public async Task<MovieDetail> CreateAsync(MovieDetail detail)
+        public async Task CreateAsync(MovieDetail detail, bool same)
         {
-            // 明确忽略客户端传入的 MediaItem 对象，防止级联写入
-            detail.MediaItem = null;
-
-            // 只允许 tmdbId 是数据库中已存在的 MediaItem 主键
-            var media = await _context.MediaItems.FindAsync(detail.MediaId);
-            if (media == null)
-                return null; //  不存在则不插入
-
+            if (same)
+                return;
             _context.MovieDetails.Add(detail);
             await _context.SaveChangesAsync();
-            return detail;
         }
 
         public async Task<bool> UpdateAsync(int mediaId, MovieDetail detail)

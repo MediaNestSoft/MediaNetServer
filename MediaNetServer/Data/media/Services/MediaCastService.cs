@@ -25,7 +25,7 @@ namespace MediaNetServer.Data.media.Services
         {
             // 查询指定剧集、季和集的演员信息
             return await _context.MediaCasts
-                .Where(c => c.MediaId == seriesId)
+                .Where(c => c.tmdbId == seriesId)
                 .ToListAsync();
         }
 
@@ -37,17 +37,15 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 创建新的 MediaCast
-        public async Task<MediaCast?> CreateAsync(MediaCast cast)
+        public async Task CreateAsync(List<MediaCast> cast)
         {
-            // 确保提供的 tmdbId 对应的 MediaItem 已存在
-            var mediaItem = await _context.MediaItems.FindAsync(cast.MediaId);
-            if (mediaItem == null)
-                return null; // 如果 MediaItem 不存在，则不创建 MediaCast
+            foreach (var castItem in cast)
+            {
+                // 将新的 MediaCast 添加到数据库
+                _context.MediaCasts.Add(castItem);
+                await _context.SaveChangesAsync(); // 异步保存更改
+            }
 
-            // 将新的 MediaCast 添加到数据库
-            _context.MediaCasts.Add(cast);
-            await _context.SaveChangesAsync(); // 异步保存更改
-            return cast; // 返回创建的 MediaCast 对象
         }
 
         // 更新现有的 MediaCast

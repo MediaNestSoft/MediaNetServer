@@ -54,43 +54,40 @@ public class PersonalizedViewsController : ControllerBase
     {
         try
         {
-            var recentMedia = await _mediaItemService.GetRecentlyAddedAsync(limit, offset);
+            var allMedia = await _mediaItemService.GetRecentlyAddedAsync();
+
+            int totalCount = allMedia.Count;
+            int skip       = offset * limit;
+            if (skip < 0) skip = 0;
+
+            var pageMedia = allMedia
+                .Skip(skip)
+                .Take(limit)
+                .ToList();
 
             var mediaItems = new List<MediaItem>();
-            foreach (var m in recentMedia)
+            foreach (var m in pageMedia)
             {
-                // 判断是不是电影
                 bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
-
-                // 直接用枚举成员，不要写数字
                 var typeEnum = isMovie
                     ? MediaItem.TypeEnum.Movie
                     : MediaItem.TypeEnum.Series;
 
-                // 根据类型取不同的 additional
-                string? additionalInfo;
-                if (isMovie)
-                {
-                    additionalInfo = m.ReleaseDate.Year.ToString();
-                }
-                else
-                {
-                    var episode = await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId);
-                    additionalInfo = episode?.seasonNumber.ToString();
-                }
+                string? additional = isMovie
+                    ? m.ReleaseDate.Year.ToString()
+                    : (await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
 
                 mediaItems.Add(new MediaItem(
                     mediaId:    new Option<int?>(m.TMDbId),
                     title:      new Option<string?>(m.Title),
                     type:       new Option<MediaItem.TypeEnum?>(typeEnum),
                     posterPath: new Option<string?>(m.PosterPath),
-                    additional: !string.IsNullOrEmpty(additionalInfo)
-                        ? new Option<string?>(additionalInfo)
+                    additional: !string.IsNullOrEmpty(additional)
+                        ? new Option<string?>(additional)
                         : default
                 ));
             }
 
-            var totalCount = mediaItems.Count;
             var response = new MediaListResponse
             {
                 Items      = mediaItems,

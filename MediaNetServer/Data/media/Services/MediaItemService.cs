@@ -1,6 +1,7 @@
 ﻿using MediaNetServer.Data.media.Data;
 using MediaNetServer.Data.media.Models;
 using Microsoft.EntityFrameworkCore;
+using Org.OpenAPITools.Client;
 
 namespace MediaNetServer.Data.media.Services
 {
@@ -14,9 +15,11 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 获取所有媒体项
-        public async Task<List<MediaItem>> GetAllMediaItemsAsync()
+        public async Task<MediaItem> GetMediaItemsAsync(int mediaId)
         {
-            return await _context.MediaItems.ToListAsync();
+            return await _context.MediaItems
+                .AsNoTracking()
+                .FirstOrDefaultAsync(mi => mi.MediaId == mediaId);
         }
 
         // 根据 ID 获取单个媒体项
@@ -29,23 +32,50 @@ namespace MediaNetServer.Data.media.Services
         /// <summary>
         /// 按 AddTime（文件最后修改时间）倒序分页返回媒体实体
         /// </summary>
-        public async Task<List<MediaItem>> GetRecentlyAddedAsync(int limit, int offset)
+        public async Task<List<MediaItem>> GetRecentlyAddedAsync()
         {
-            int skip = offset * limit;
             return await _context.MediaItems
                 .AsNoTracking()
                 .OrderByDescending(mi => mi.AddTime)
-                .Skip(skip)
-                .Take(limit)
                 .ToListAsync();
         }
 
         // 创建媒体项
-        public async Task<MediaItem> CreateMediaItemAsync(MediaItem mediaItem)
+        public async Task<bool> CreateMediaItemAsync(MediaItem mediaItem)
         {
+            bool exists = await _context.MediaItems
+                .AnyAsync(mi => mi.TMDbId == mediaItem.TMDbId);
+            if (exists)
+            {
+                return true;
+            }
+
             _context.MediaItems.Add(mediaItem);
             await _context.SaveChangesAsync();
-            return mediaItem;
+            return false;
+        }
+        
+        public async Task<List<MediaItem>> SearchByTitleAsync(string q)
+        {
+            var query = _context.MediaItems
+                .AsNoTracking()
+                .Where(m => m.Title.StartsWith(q));
+
+            var result = new List<MediaItem>();
+            foreach (var m in query)
+            {
+                var mediaItem = new MediaItem
+                {
+                    TMDbId = m.TMDbId,
+                    Title = m.Title,
+                    Type = m.Type,
+                    PosterPath = m.PosterPath
+                };
+
+                result.Add(mediaItem);
+            }
+
+            return result;
         }
 
         // 更新媒体项

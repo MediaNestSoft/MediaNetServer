@@ -1,59 +1,112 @@
+using MediaNetServer.Data.media.Models;
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
 using Microsoft.Extensions.Logging;
+using Org.OpenAPITools.Client;
 
 namespace MediaNetServer.Controllers;
 
 [ApiController]
-[Route("users/{userId}/playback")]
+[Route("playback")]
 public class PlaybackHistoryController : ControllerBase
 {
     private readonly HistoryService _historyService;
     private readonly WatchProgressService _watchProgressService;
     private readonly MediaItemService _mediaItemService;
     private readonly ILogger<PlaybackHistoryController> _logger;
+    private readonly MovieDetailService _movieDetailService;
+    private readonly EpisodesService _episodesService;
+    private readonly SeasonService _seasonService;
 
     public PlaybackHistoryController(HistoryService historyService, WatchProgressService watchProgressService,
-        MediaItemService mediaItemService, ILogger<PlaybackHistoryController> logger)
+        MediaItemService mediaItemService, ILogger<PlaybackHistoryController> logger, MovieDetailService movieDetailService,
+        EpisodesService episodesService, SeasonService seasonService)
     {
         _historyService = historyService;
         _watchProgressService = watchProgressService;
         _mediaItemService = mediaItemService;
         _logger = logger;
+        _movieDetailService = movieDetailService;
+        _episodesService = episodesService;
+        _seasonService = seasonService;
     }
 
-    [HttpGet("history")]
-    public async Task<IActionResult> GetPlaybackHistory(string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0, [FromQuery] string? mediaType = null)
+    [HttpGet("history/all")]
+    public async Task<IActionResult> GetPlaybackHistory([FromQuery]string userId, [FromQuery]int limit, [FromQuery]int offset)
     {
         try
         {
-            var histories = await _historyService.GetHistoryByUserIdAsync(userId, limit, offset, mediaType);
+            var histories = await _historyService.GetAllHistoryByUserIdAsync(userId);
             var historyItems = new List<PlaybackHistoryItem>();
 
             foreach (var history in histories)
             {
-                var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(history.MediaId);
-                if (mediaItem != null)
+                // MediaItem
+                var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(history.tmdbId);
+                if (mediaItem == null) 
+                    continue;
+
+                // 判断类型
+                if (mediaItem.Type.Equals("movie", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Movie
+                    var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaItem.TMDbId);
                     historyItems.Add(new PlaybackHistoryItem
                     {
-                        MediaId = mediaItem.Id,
-                        Title = mediaItem.Title,
-                        Type = mediaItem.Type,
+                        MediaId    = mediaItem.TMDbId,
+                        Title      = mediaItem.Title,
+                        Type       = new Option<PlaybackHistoryItem.TypeEnum>(PlaybackHistoryItem.TypeEnum.Movie),
                         PosterPath = mediaItem.PosterPath,
-                        WatchedAt = history.WatchedAt,
-                        Position = history.Position
+                        Additional = mediaItem.ReleaseDate.Year.ToString(),
+                        SeasonNumber = -1,
+                        EpisodeNumber = -1,
+                        Position   = history.position ?? 0,
+                        Runtime    = movieDetail.Duration * 60
+                    });
+                }
+                else if (mediaItem.Type.Equals("series", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Series
+                    var seasonNum  = history.seasonNumber ?? -1;
+                    var episodeNum = history.episodeNumber ?? -1;
+
+                    var episode = await _episodesService
+                        .GetEpisode(
+                            tmdbId:    mediaItem.TMDbId,
+                            seasonNumber: seasonNum,
+                            episodeNumber: episodeNum
+                        );
+
+                    historyItems.Add(new PlaybackHistoryItem
+                    {
+                        MediaId    = mediaItem.TMDbId,
+                        Title      = mediaItem.Title,
+                        Type       = new Option<PlaybackHistoryItem.TypeEnum>(PlaybackHistoryItem.TypeEnum.Series),
+                        PosterPath = mediaItem.PosterPath,
+                        Additional = seasonNum.ToString(),
+                        SeasonNumber = seasonNum,
+                        EpisodeNumber = episodeNum,
+                        Position   = history.position ?? 0,
+                        Runtime    = episode.duration * 60
                     });
                 }
             }
+            var totalCount = historyItems.Count;
+
+            var skip = offset * limit;
+            if (skip < 0) skip = 0;
+
+            // 分页：跳过 skip 条，取 limit 条
+            var pageItems = historyItems
+                .Skip(skip)
+                .Take(limit)
+                .ToList();
 
             var response = new PlaybackHistoryResponse
             {
-                History = historyItems,
-                TotalCount = historyItems.Count,
-                Page = offset / limit + 1,
-                TotalPages = (int)Math.Ceiling((double)historyItems.Count / limit)
+                Items = pageItems,
+                TotalCount = totalCount,
             };
 
             return Ok(response);
@@ -65,101 +118,91 @@ public class PlaybackHistoryController : ControllerBase
         }
     }
 
-    [HttpGet("movies/{tmdbId}/history")]
-    public async Task<IActionResult> GetMoviePlaybackHistory(string userId, int mediaId)
+    [HttpGet("history/movie")]
+    public async Task<IActionResult> GetMoviePlaybackHistory([FromQuery]string userId, [FromQuery]int mediaId)
     {
         try
         {
-            var history = await _historyService.GetHistoryByUserAndMediaAsync(userId, mediaId);
-            if (history == null)
-            {
-                return NotFound(new Error { Message = "Playback history not found" });
-            }
-
-            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(mediaId);
-            if (mediaItem?.Type != "movie")
-            {
-                return BadRequest(new Error { Message = "Media is not a movie" });
-            }
-
+            var histories = await _historyService.GetHistoryByUserIdAsync(userId, mediaId);
+            var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaId);
+            
             var response = new MoviePlaybackHistory
             {
                 MediaId = mediaId,
-                Title = mediaItem.Title,
-                Position = history.Position,
-                WatchedAt = history.WatchedAt
+                Position = histories.FirstOrDefault()?.position ?? 0,
+                Runtime = histories.FirstOrDefault().duration
             };
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting movie playback history for user {UserId}, media {MediaId}", userId, mediaId);
+            _logger.LogError(ex, "Error getting movie playback history for user {UserId}, media {SeasonId}", userId, mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
 
-    [HttpGet("series/{tmdbId}/history")]
+    [HttpGet("history/series")]
     public async Task<IActionResult> GetSeriesPlaybackHistory(string userId, int mediaId)
     {
         try
         {
-            var histories = await _historyService.GetSeriesHistoryByUserAndMediaAsync(userId, mediaId);
-            var mediaItem = await _mediaItemService.GetMediaItemByIdAsync(mediaId);
-            
-            if (mediaItem?.Type != "series")
-            {
-                return BadRequest(new Error { Message = "Media is not a series" });
-            }
+            var histories = await _historyService.GetHistoryByUserIdAsync(userId, mediaId);
 
             var response = new SeriesPlaybackHistory
             {
                 MediaId = mediaId,
-                Title = mediaItem.Title,
-                Episodes = histories.Select(h => new EpisodePlaybackHistory
-                {
-                    EpisodeId = h.EpisodeId ?? 0,
-                    Position = h.Position,
-                    WatchedAt = h.WatchedAt
-                }).ToList()
+                SeasonNumber = histories[0].seasonNumber ?? 0,
+                EpisodeNumber = histories[0].episodeNumber ?? 0,
+                Position = histories[0].position ?? 0,
+                Runtime = histories.FirstOrDefault().duration,
             };
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting series playback history for user {UserId}, media {MediaId}", userId, mediaId);
+            _logger.LogError(ex, "Error getting series playback history for user {UserId}, media {SeasonId}", userId, mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
 
-    [HttpPost("report")]
-    public async Task<IActionResult> ReportPlaybackProgress(string userId, ReportPlaybackRequest request)
+    [HttpPost("progress")]
+    public async Task<IActionResult> ReportPlaybackProgress([FromQuery]string userId, [FromBody]ReportPlaybackRequest request)
     {
         try
         {
-            // 更新或创建观看进度
-            var watchProgress = new MediaNetServer.Data.media.Models.WatchProgress
+            var userGuid = Guid.Parse(userId);
+
+            var progress = new WatchProgress
             {
-                UserId = Guid.Parse(userId),
-                MediaId = request.MediaId,
-                Position = request.Position,
-                Duration = request.Duration,
-                UpdatedAt = DateTime.UtcNow
+                UserId        = userGuid,
+                tmdbId        = request.MediaId,
+                position      = request.Position,
+                lastWatched   = DateTime.UtcNow,
+                seasonNumber  = request.SeasonNumber ?? -1,
+                episodeNumber = request.EpisodeNumber ?? -1
             };
 
-            await _watchProgressService.UpdateOrCreateAsync(watchProgress);
+            await _watchProgressService
+                .UpdateOrCreateAsync(progress)
+                .ConfigureAwait(false);
 
-            // 添加到历史记录
-            var history = new MediaNetServer.Data.media.Models.History
+            
+            var history = new History
             {
-                UserId = Guid.Parse(userId),
-                MediaId = request.MediaId,
-                Position = request.Position,
-                WatchedAt = DateTime.UtcNow
+                UserId     = userGuid,
+                tmdbId     = request.MediaId,
+                position   = request.Position,
+                watchedAt  = DateTime.UtcNow,
+                seasonNumber  = request.SeasonNumber,
+                episodeNumber = request.EpisodeNumber,
+                isFinished    = false
             };
 
-            await _historyService.AddAsync(history);
+            await _historyService
+                .UpdateOrCreateHistoryAsync(history)
+                .ConfigureAwait(false);
 
             return Ok();
         }

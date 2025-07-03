@@ -17,16 +17,15 @@ namespace MediaNetServer.Data.media.Models
         [ForeignKey("User")]
         public Guid UserId { get; set; }
 
-        [ForeignKey("tmdbId")]
         public int tmdbId { get; set; }
 
         public DateTime lastWatched { get; set; }
 
         public int position { get; set; } // 播放秒数
 
-        public int seasonNumber { get; set; } // 剧集：季数，电影为 0
+        public int seasonNumber { get; set; } // 剧集：季数，电影为 -1
 
-        public int episodeNumber { get; set; } // 剧集：集数，电影为 0
+        public int episodeNumber { get; set; } // 剧集：集数，电影为 -1
 
         // 导航属性
         [BindNever]

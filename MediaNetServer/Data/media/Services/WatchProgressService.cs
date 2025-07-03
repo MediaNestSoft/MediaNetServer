@@ -35,29 +35,35 @@ namespace MediaNetServer.Data.media.Services
             return await _context.WatchProgress.FirstOrDefaultAsync(wp => wp.watchProgressId == id);
         }
 
-        // 创建
-        public async Task<WatchProgress> CreateAsync(WatchProgress watchProgress)
+        /// <summary>
+        /// 如果已存在该用户该媒体的进度，则更新；否则插入新纪录
+        /// </summary>
+        public async Task UpdateOrCreateAsync(WatchProgress progress, CancellationToken ct = default)
         {
-            _context.WatchProgress.Add(watchProgress);
-            await _context.SaveChangesAsync();
-            return watchProgress;
-        }
+            var existing = await _context.WatchProgresses
+                .FirstOrDefaultAsync(wp =>
+                    wp.UserId == progress.UserId &&
+                    wp.tmdbId == progress.tmdbId, ct)
+                .ConfigureAwait(false);
 
-        // 更新
-        public async Task<WatchProgress?> UpdateAsync(int id, WatchProgress updated)
-        {
-            var existing = await _context.WatchProgress.FindAsync(id);
-            if (existing == null) return null;
+            if (existing != null)
+            {
+                // 更新字段
+                existing.position      = progress.position;
+                existing.lastWatched   = progress.lastWatched;
+                existing.seasonNumber  = progress.seasonNumber;
+                existing.episodeNumber = progress.episodeNumber;
+            }
+            else
+            {
+                // 新增记录
+                await _context.WatchProgresses
+                    .AddAsync(progress, ct)
+                    .ConfigureAwait(false);
+            }
 
-            existing.UserId = updated.UserId;
-            existing.tmdbId = updated.tmdbId;
-            existing.lastWatched = updated.lastWatched;
-            existing.position = updated.position;
-            existing.seasonNumber = updated.seasonNumber;
-            existing.episodeNumber = updated.episodeNumber;
-
-            await _context.SaveChangesAsync();
-            return existing;
+            await _context.SaveChangesAsync(ct)
+                .ConfigureAwait(false);
         }
 
         // 删除
@@ -82,7 +88,7 @@ namespace MediaNetServer.Data.media.Services
                 .AsNoTracking()
                 .Where(w => w.UserId.ToString() == userId)
                 .OrderByDescending(w => w.lastWatched)
-                .Skip(offset).Take(limit)
+                .Skip(offset * limit).Take(limit)
                 .ToListAsync();
             
             var result = new List<ContinueWatchItem>();

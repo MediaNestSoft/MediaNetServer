@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MediaNetServer.Controllers;
 
+/*
 [ApiController]
 [Route("stream")]
 public class StreamingController : ControllerBase
@@ -53,7 +54,7 @@ public class StreamingController : ControllerBase
         }
     }
 
-    [HttpGet("movie/{tmdbId}/files")]
+    [HttpGet("movie/{SeasonId}/files")]
     public async Task<IActionResult> GetMovieFiles(int mediaId)
     {
         try
@@ -85,7 +86,7 @@ public class StreamingController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting movie files for {MediaId}", mediaId);
+            _logger.LogError(ex, "Error getting movie files for {SeasonId}", mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
@@ -143,3 +144,4 @@ public class StreamingController : ControllerBase
         };
     }
 }
+*/

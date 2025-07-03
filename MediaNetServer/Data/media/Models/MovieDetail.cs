@@ -14,7 +14,7 @@ namespace MediaNetServer.Data.media.Models
 
         public string Overview { get; set; } // 概述
 
-        public int Duration { get; set; } // 时长（秒）
+        public int Duration { get; set; } // 时长（分）
 
         // 导航属性
         [BindNever]

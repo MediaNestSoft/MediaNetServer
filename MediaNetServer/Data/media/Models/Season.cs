@@ -11,23 +11,22 @@ namespace MediaNetServer.Data.media.Models
     public class Season
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SeasonId { get; set; } // 主键，自增
+        public int SeasonId { get; set; } // 主键 tmdb
 
         [ForeignKey("MediaItem")]
         public int MediaId { get; set; }  // 外键，关联 MediaItems
 
         public int SeasonNumber { get; set; } // 季数
 
-        public string SeasonName { get; set; } // 季名称
+        public string? SeasonName { get; set; } // 季名称
         
         public string overview { get; set; } // 季概述
         
         public DateTime AirDate { get; set; }
         
-        public int episodeCount { get; set; } // 集数
+        public int? episodeCount { get; set; } // 集数
         
-        public string posterPath { get; set; } // 海报路径
+        public string? posterPath { get; set; } // 海报路径
         
         public float rating { get; set; } // 评分
 
