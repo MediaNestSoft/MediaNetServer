@@ -285,7 +285,7 @@ public class FolderScraperService
             var seriesName = epInfo.SeriesName;
 
             // 搜索剧集列表，并优先用年份过滤
-            var searchResults = await _tmdbClient.SearchTvShowAsync(title)
+            var searchResults = await _tmdbClient.SearchTvShowAsync(seriesName)
                 .ConfigureAwait(false);
 
             if (searchResults == null)
@@ -298,7 +298,7 @@ public class FolderScraperService
             
             if (sResults == null)
             {
-                Console.WriteLine($"未能从 TMDb 搜索结果中找到剧集：{title}");
+                Console.WriteLine($"未能从 TMDb 搜索结果中找到剧集：{seriesName}");
                 continue;
             }
 

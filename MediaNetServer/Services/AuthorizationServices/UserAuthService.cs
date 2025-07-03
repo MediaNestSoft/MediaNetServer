@@ -16,26 +16,24 @@ namespace MediaNetServer.Services.AuthorizationServices
         }
 
         /// <summary>
-        /// 启动命令行：登录或注册
+        /// 启动一次性交互式认证流程
         /// </summary>
         public void StartInteractive()
         {
-            while (true)
+            Console.WriteLine("请输入操作指令:[R] 注册， [L] 已注册，在客户端登录登录");
+            var key = Console.ReadLine()?.Trim().ToUpperInvariant();
+
+            if (key == "R")
             {
-                Console.WriteLine("请选择操作: [L] 登录，[R] 注册，[Q] 退出");
-                var key = Console.ReadLine()?.Trim().ToUpperInvariant();
-                if (key == "L")
-                {
-                    if (LoginInteractive()) break;
-                }
-                else if (key == "R")
-                {
-                    CreateUserInteractive();
-                }
-                else if (key == "Q")
-                {
-                    Environment.Exit(0);
-                }
+                CreateUserInteractive();
+            }
+            else if (key == "L")
+            {
+                Console.WriteLine("请前往客户端进行登录。");
+            }
+            else
+            {
+                Console.WriteLine("输入无效，未执行任何操作。");
             }
         }
 
@@ -68,7 +66,6 @@ namespace MediaNetServer.Services.AuthorizationServices
                 Console.WriteLine("密码不符合要求，请重新输入:");
             }
 
-            // 第一个用户为管理员
             bool isAdmin = !_userService.GetAllUsers().Any();
 
             var user = new User
@@ -80,39 +77,7 @@ namespace MediaNetServer.Services.AuthorizationServices
             };
 
             _userService.AddUser(user);
-            Console.WriteLine(isAdmin ? "管理员用户创建成功" : "普通用户创建成功");
-        }
-
-        /// <summary>
-        /// 登录，成功后返回 true 并退出循环，密码错误超过3次返回 false
-        /// </summary>
-        private bool LoginInteractive()
-        {
-            Console.WriteLine("请输入用户名:");
-            var username = Console.ReadLine()?.Trim() ?? string.Empty;
-            var user = _userService.GetUserByUsername(username);
-            if (user == null)
-            {
-                Console.WriteLine("用户名不存在，请先注册。");
-                return false;
-            }
-
-            for (int tries = 0; tries < 3; tries++)
-            {
-                Console.WriteLine("请输入密码:");
-                var pwd = Console.ReadLine()?.Trim() ?? string.Empty;
-                var valid = _userService.ValidateCredentials(username, pwd);
-                if (valid != null)
-                {
-                    Console.WriteLine($"登录成功，欢迎{valid.Username}!  {(valid.IsAdmin? "[管理员]":"")}");
-                    return true;
-                }
-
-                Console.WriteLine("密码错误，请重试。");
-            }
-
-            Console.WriteLine("尝试次数过多，返回主菜单。");
-            return false;
+            Console.WriteLine("用户创建成功");
         }
     }
 }

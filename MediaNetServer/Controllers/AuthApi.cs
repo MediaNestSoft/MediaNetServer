@@ -35,7 +35,7 @@ public class AuthController : ControllerBase
             // 生成JWT tokens
             var accessToken = GenerateAccessToken(user.UserId.ToString());
             var refreshToken = GenerateRefreshToken();
-            var expiresAt = DateTime.UtcNow.AddHours(24);
+            var expiresAt = DateTime.UtcNow.AddHours(999);
             
             // 创建token记录
             var token = new Data.media.Models.Token
@@ -45,7 +45,7 @@ public class AuthController : ControllerBase
                 RefreshToken = refreshToken,
                 ExpiresAt = expiresAt
             };
-            _tokenService.AddToken(token);
+            await _tokenService.AddToken(token);
             
             var response = new LoginResponse
             {
@@ -104,7 +104,7 @@ public class AuthController : ControllerBase
             token.AccessToken = newAccessToken;
             token.RefreshToken = newRefreshToken;
             token.ExpiresAt = expiresAt;
-            _tokenService.UpdateToken(token);
+            await _tokenService.UpdateToken(token);
             
             var response = new LoginResponse
             {

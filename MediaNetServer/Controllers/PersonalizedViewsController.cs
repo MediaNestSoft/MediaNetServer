@@ -49,7 +49,7 @@ public class PersonalizedViewsController : ControllerBase
         }
     }
 
-    [HttpGet("recent-adds")]
+    [HttpGet("recent-add")]
     public async Task<IActionResult> GetRecentAdds([FromQuery]string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
     {
         try
@@ -99,6 +99,63 @@ public class PersonalizedViewsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting recent adds for user {UserId}", userId);
+            return StatusCode(500, new Error { Message = "Internal server error" });
+        }
+    }
+    
+    [HttpGet("ping")]
+    public IActionResult Ping() => Ok("pong");
+    
+    [HttpGet("recommended")]
+    public async Task<IActionResult> GetRecommended([FromQuery]string userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
+    {
+        try
+        {
+            var allMedia = await _playlistService.GetRecommendedAsync();
+
+            int totalCount = allMedia.Count;
+            int skip       = offset * limit;
+            if (skip < 0) skip = 0;
+
+            var pageMedia = allMedia
+                .Skip(skip)
+                .Take(limit)
+                .ToList();
+
+            var mediaItems = new List<MediaItem>();
+            foreach (var m in pageMedia)
+            {
+                bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
+                var typeEnum = isMovie
+                    ? MediaItem.TypeEnum.Movie
+                    : MediaItem.TypeEnum.Series;
+
+                string? additional = isMovie
+                    ? m.ReleaseDate.Year.ToString()
+                    : (await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
+
+                mediaItems.Add(new MediaItem(
+                    mediaId:    new Option<int?>(m.TMDbId),
+                    title:      new Option<string?>(m.Title),
+                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
+                    posterPath: new Option<string?>(m.PosterPath),
+                    additional: !string.IsNullOrEmpty(additional)
+                        ? new Option<string?>(additional)
+                        : default
+                ));
+            }
+
+            var response = new MediaListResponse
+            {
+                Items = mediaItems,
+                TotalCount = totalCount
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting recommendations for user {UserId}", userId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }

@@ -88,5 +88,16 @@ namespace MediaNetServer.Data.media.Services
             await _context.SaveChangesAsync();
             return true;
         }
+        
+        /// <summary>
+        /// 获取推荐媒体：按评分从高到低排序
+        /// </summary>
+        public async Task<List<MediaItem>> GetRecommendedAsync()
+        {
+            return await _context.MediaItems
+                .AsNoTracking()
+                .OrderByDescending(m => m.Rating)
+                .ToListAsync();
+        }
     }
 }

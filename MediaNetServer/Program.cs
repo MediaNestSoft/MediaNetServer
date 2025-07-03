@@ -16,27 +16,14 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 const string tmdbApiKey = "fee09865c006d213b701f3aef5629d1e";
-
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenAnyIP(6666);
-});
-
 builder.Services.AddSingleton(sp =>
 {
-    var client = new TMDbClient(tmdbApiKey)
-    {
-        //DefaultLanguage      = "zh-CN",
-        //DefaultImageLanguage = "en,null"
-    };
-    client.GetConfigAsync()
-        .GetAwaiter()
-        .GetResult();
+    var client = new TMDbClient(tmdbApiKey);
+    client.GetConfigAsync().GetAwaiter().GetResult();
     return client;
 });
 
-// 注册其他服务
 builder.Services.AddScoped<UserAuthService>();
 builder.Services.AddScoped<HistoryService>();
 builder.Services.AddScoped<WatchProgressService>();
@@ -46,50 +33,60 @@ builder.Services.AddScoped<EpisodesService>();
 builder.Services.AddScoped<FolderScraperService>();
 builder.Services.Configure<ImagesService.ImageSettings>(builder.Configuration.GetSection("ImageSettings"));
 
-builder.Services.AddControllers();
-
-var folder = "/Volumes/T9ExFAT/Vedios";
-if (!Directory.Exists(folder))
-{
-    Console.Error.WriteLine($"错误：找不到路径 {folder}");
-    return;
-}
+builder.Services.AddSingleton<ImageCacheService>(sp => {
+    var settings = sp.GetRequiredService<IOptions<ImagesService.ImageSettings>>().Value;
+    return new ImageCacheService(settings.CachePath);
+});
 
 DatabaseProgram.AddDatabaseServices(builder);
 builder.Services.AddDbContext<MediaContext>(opts =>
     opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddSingleton<ImageCacheService>(sp =>
+builder.WebHost.ConfigureKestrel(options =>
 {
-    var settings = sp.GetRequiredService<IOptions<ImagesService.ImageSettings>>().Value;
-    return new ImageCacheService(settings.CachePath);
+    options.ListenAnyIP(6666);
 });
+
 var app = builder.Build();
 
 Console.WriteLine("ConnStr = " + builder.Configuration.GetConnectionString("DefaultConnection"));
 
+// 🔧 中间件配置顺序
 app.UseRouting();
+
+// 如果你有 HTTPS 可启用下面一行
+// app.UseHttpsRedirection();
+
+app.UseAuthentication();
+
+// 👇 映射 API 控制器
 app.MapControllers();
 
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllerRoute(
-        name: "default",
-        pattern: "media/image/{*path}");
+        name: "image",
+        pattern: "media/image/{*path}",
+        defaults: new { controller = "Media", action = "ImageHandler" });
 });
 
-// 启动时执行一次刮削并持久化
+// 🛠 初始化数据库及刮削
 using (var scope = app.Services.CreateScope())
 {
-    // 确保数据库迁移
     var ctx = scope.ServiceProvider.GetRequiredService<MediaContext>();
     ctx.Database.Migrate();
-    // 登录注册
+
     var auth = scope.ServiceProvider.GetRequiredService<UserAuthService>();
     auth.StartInteractive();
-    var mediaService = scope.ServiceProvider.GetRequiredService<FolderScraperService>();
-    // 刮削
-    await mediaService.ScrapeFolderAsync(folder);
+
+    var scraper = scope.ServiceProvider.GetRequiredService<FolderScraperService>();
+    var folder = "/Volumes/T9ExFAT/Vedios";
+    if (!Directory.Exists(folder))
+    {
+        Console.Error.WriteLine($"错误：找不到路径 {folder}");
+        return;
+    }
+    await scraper.ScrapeFolderAsync(folder);
 }
 
 app.Run();

@@ -99,7 +99,7 @@ public class MediaMetadataController : ControllerBase
                     new Option<float?>((float)seriesDetail.MediaItem.Rating),
                     new Option<string?>(seriesDetail.MediaItem.Language)
                 );
-                
+
                 var response = new GetMediaDetail200Response(seriesResponse);
                 return Ok(response);
             }
@@ -114,7 +114,8 @@ public class MediaMetadataController : ControllerBase
     }
 
     [HttpGet("series/seasons/episodes/credits")]
-    public async Task<IActionResult> GetEpisodeCredits([FromQuery]int seriesId, [FromQuery]int seasonNumber, [FromQuery]int episodeNumber)
+    public async Task<IActionResult> GetEpisodeCredits([FromQuery] int seriesId, [FromQuery] int seasonNumber,
+        [FromQuery] int episodeNumber)
     {
         try
         {
@@ -136,14 +137,15 @@ public class MediaMetadataController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting episode credits for series {SeriesId}, season {SeasonNumber}, episode {EpisodeNumber}", 
+            _logger.LogError(ex,
+                "Error getting episode credits for series {SeriesId}, season {SeasonNumber}, episode {EpisodeNumber}",
                 seriesId, seasonNumber, episodeNumber);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
 
     [HttpGet("episodes")]
-    public async Task<IActionResult> GetEpisodesList([FromQuery]int seriesId, [FromQuery]int seasonNumber)
+    public async Task<IActionResult> GetEpisodesList([FromQuery] int seriesId, [FromQuery] int seasonNumber)
     {
         try
         {
@@ -151,12 +153,12 @@ public class MediaMetadataController : ControllerBase
             var episodeList = episodes
                 .Select(e => new Episode(
                     episodeNumber: new Option<int?>(e.episodeNumber),
-                    title:         new Option<string?>(e.episodeName),
-                    overview:      new Option<string?>(e.overview),
-                    stillPath:     new Option<string?>(e.stillPath),
-                    airDate:       new Option<DateOnly?>(DateOnly.FromDateTime(e.airDate)),
-                    duration:      new Option<int?>(e.duration),
-                    rating:        new Option<float?>((float)e.rating)
+                    title: new Option<string?>(e.episodeName),
+                    overview: new Option<string?>(e.overview),
+                    stillPath: new Option<string?>(e.stillPath),
+                    airDate: new Option<DateOnly?>(DateOnly.FromDateTime(e.airDate)),
+                    duration: new Option<int?>(e.duration),
+                    rating: new Option<float?>((float)e.rating)
                 ))
                 .ToList();
 
@@ -169,13 +171,14 @@ public class MediaMetadataController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting episodes for series {SeriesId}, season {SeasonNumber}", seriesId, seasonNumber);
+            _logger.LogError(ex, "Error getting episodes for series {SeriesId}, season {SeasonNumber}", seriesId,
+                seasonNumber);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
 
     [HttpGet("seasons")]
-    public async Task<IActionResult> GetSeasonsList([FromQuery]int seriesId)
+    public async Task<IActionResult> GetSeasonsList([FromQuery] int seriesId)
     {
         try
         {
@@ -183,12 +186,12 @@ public class MediaMetadataController : ControllerBase
             var seasonList = seasons
                 .Select(s => new Season(
                     seasonNumber: new Option<int?>(s.SeasonNumber),
-                    name:         new Option<string?>(s.SeasonName),
-                    overview:     new Option<string?>(s.overview),
-                    posterPath:   new Option<string?>(s.posterPath),
-                    airDate:      new Option<DateOnly?>(DateOnly.FromDateTime(s.AirDate)),
+                    name: new Option<string?>(s.SeasonName),
+                    overview: new Option<string?>(s.overview),
+                    posterPath: new Option<string?>(s.posterPath),
+                    airDate: new Option<DateOnly?>(DateOnly.FromDateTime(s.AirDate)),
                     episodeCount: new Option<int?>(s.episodeCount),
-                    rating:       new Option<float?>(s.rating)
+                    rating: new Option<float?>(s.rating)
                 ))
                 .ToList();
 
@@ -234,22 +237,22 @@ public class MediaMetadataController : ControllerBase
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
     }
-    
+
     private string GetContentType(string filePath)
     {
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
         return ext switch
         {
-            ".jpg"  => "image/jpeg",
+            ".jpg" => "image/jpeg",
             ".jpeg" => "image/jpeg",
-            ".png"  => "image/png",
+            ".png" => "image/png",
             ".webp" => "image/webp",
-            _       => "application/octet-stream"
+            _ => "application/octet-stream"
         };
     }
 
     [HttpGet("status")]
-    public async Task<IActionResult> GetMediaStatus([FromQuery]string userId, [FromQuery]int mediaId)
+    public async Task<IActionResult> GetMediaStatus([FromQuery] string userId, [FromQuery] int mediaId)
     {
         try
         {
@@ -265,7 +268,7 @@ public class MediaMetadataController : ControllerBase
             bool cnt = await _playlistService.IsInContinueWatchAsync(userId, mediaId);
 
             var response = new MediaStatusResponse(
-                isInFavorites:     new Option<bool?>(fav),
+                isInFavorites: new Option<bool?>(fav),
                 isInContinueWatch: new Option<bool?>(cnt)
             );
 
@@ -276,5 +279,59 @@ public class MediaMetadataController : ControllerBase
             _logger.LogError(ex, "Error getting media status for user {UserId}, media {SeasonId}", userId, mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
+    }
+
+    [HttpGet("list")]
+    public async Task<IActionResult> GetMediaList([FromQuery] int limit = 20, [FromQuery] int offset = 0,
+        [FromQuery] string? type = null)
+    {
+        try
+        {
+            var allMedia = await _mediaItemService.GetMediaListAsync(type);
+            int totalCount = allMedia.Count;
+            int skip = offset * limit;
+            if (skip < 0) skip = 0;
+
+            var pageMedia = allMedia
+                .Skip(skip)
+                .Take(limit)
+                .ToList();
+
+            var mediaItems = new List<MediaItem>();
+            foreach (var m in pageMedia)
+            {
+                bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
+                var typeEnum = isMovie
+                    ? MediaItem.TypeEnum.Movie
+                    : MediaItem.TypeEnum.Series;
+
+                string? additional = isMovie
+                    ? m.ReleaseDate.Year.ToString()
+                    : (await _episodesService.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
+
+                mediaItems.Add(new MediaItem(
+                    mediaId: new Option<int?>(m.TMDbId),
+                    title: new Option<string?>(m.Title),
+                    type: new Option<MediaItem.TypeEnum?>(typeEnum),
+                    posterPath: new Option<string?>(m.PosterPath),
+                    additional: !string.IsNullOrEmpty(additional)
+                        ? new Option<string?>(additional)
+                        : default
+                ));
+            }
+
+            var response = new MediaListResponse
+            {
+                Items = mediaItems,
+                TotalCount = totalCount
+            };
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting media list}");
+            return StatusCode(500, new Error { Message = "Internal server error" });
+        }
+
     }
 }

@@ -111,5 +111,22 @@ namespace MediaNetServer.Data.media.Services
             await _context.SaveChangesAsync();
             return true;
         }
+        
+        /// <summary>
+        /// 获取所有媒体项，可按类型过滤
+        /// </summary>
+        /// <param name="type"></param>
+        public async Task<List<MediaItem>> GetMediaListAsync(string? type = null)
+        {
+            var query = _context.MediaItems.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                query = query
+                    .Where(m => m.Type.ToLower() == type.ToLower());
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }
