@@ -2,6 +2,7 @@ using MediaNetServer.Data.media.Models;
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
+using MediaNetServer.Models;
 using Microsoft.Extensions.Logging;
 using Org.OpenAPITools.Client;
 
@@ -38,7 +39,7 @@ public class PlaybackHistoryController : ControllerBase
         try
         {
             var histories = await _historyService.GetAllHistoryByUserIdAsync(userId);
-            var historyItems = new List<PlaybackHistoryItem>();
+            var historyItems = new List<LocalPlaybackHistoryItem>();
 
             foreach (var history in histories)
             {
@@ -52,11 +53,11 @@ public class PlaybackHistoryController : ControllerBase
                 {
                     // Movie
                     var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaItem.TMDbId);
-                    historyItems.Add(new PlaybackHistoryItem
+                    historyItems.Add(new LocalPlaybackHistoryItem
                     {
                         MediaId    = mediaItem.TMDbId,
                         Title      = mediaItem.Title,
-                        Type       = new Option<PlaybackHistoryItem.TypeEnum>(PlaybackHistoryItem.TypeEnum.Movie),
+                        Type       = MediaType.Movie,
                         PosterPath = mediaItem.PosterPath,
                         Additional = mediaItem.ReleaseDate.Year.ToString(),
                         SeasonNumber = -1,
@@ -78,11 +79,11 @@ public class PlaybackHistoryController : ControllerBase
                             episodeNumber: episodeNum
                         );
 
-                    historyItems.Add(new PlaybackHistoryItem
+                    historyItems.Add(new LocalPlaybackHistoryItem
                     {
                         MediaId    = mediaItem.TMDbId,
                         Title      = mediaItem.Title,
-                        Type       = new Option<PlaybackHistoryItem.TypeEnum>(PlaybackHistoryItem.TypeEnum.Series),
+                        Type       = MediaType.Series,
                         PosterPath = mediaItem.PosterPath,
                         Additional = seasonNum.ToString(),
                         SeasonNumber = seasonNum,
@@ -103,7 +104,7 @@ public class PlaybackHistoryController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            var response = new PlaybackHistoryResponse
+            var response = new LocalPlaybackHistoryResponse
             {
                 Items = pageItems,
                 TotalCount = totalCount,
@@ -126,7 +127,7 @@ public class PlaybackHistoryController : ControllerBase
             var histories = await _historyService.GetHistoryByUserIdAsync(userId, mediaId);
             var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaId);
             
-            var response = new MoviePlaybackHistory
+            var response = new LocalPlaybackHistoryItem
             {
                 MediaId = mediaId,
                 Position = histories.FirstOrDefault()?.position ?? 0,
@@ -168,7 +169,7 @@ public class PlaybackHistoryController : ControllerBase
     }
 
     [HttpPost("progress")]
-    public async Task<IActionResult> ReportPlaybackProgress([FromQuery]string userId, [FromBody]ReportPlaybackRequest request)
+    public async Task<IActionResult> ReportPlaybackProgress([FromQuery]string userId, [FromBody]LocalReportPlaybackRequest reportPlaybackRequest)
     {
         try
         {
@@ -177,11 +178,11 @@ public class PlaybackHistoryController : ControllerBase
             var progress = new WatchProgress
             {
                 UserId        = userGuid,
-                tmdbId        = request.MediaId,
-                position      = request.Position,
+                tmdbId        = reportPlaybackRequest.MediaId,
+                position      = reportPlaybackRequest.Position,
                 lastWatched   = DateTime.UtcNow,
-                seasonNumber  = request.SeasonNumber ?? -1,
-                episodeNumber = request.EpisodeNumber ?? -1
+                seasonNumber  = reportPlaybackRequest.SeasonNumber ?? -1,
+                episodeNumber = reportPlaybackRequest.EpisodeNumber ?? -1
             };
 
             await _watchProgressService
@@ -192,11 +193,11 @@ public class PlaybackHistoryController : ControllerBase
             var history = new History
             {
                 UserId     = userGuid,
-                tmdbId     = request.MediaId,
-                position   = request.Position,
+                tmdbId     = reportPlaybackRequest.MediaId,
+                position   = reportPlaybackRequest.Position,
                 watchedAt  = DateTime.UtcNow,
-                seasonNumber  = request.SeasonNumber,
-                episodeNumber = request.EpisodeNumber,
+                seasonNumber  = reportPlaybackRequest.SeasonNumber,
+                episodeNumber = reportPlaybackRequest.EpisodeNumber,
                 isFinished    = false
             };
 
@@ -209,7 +210,7 @@ public class PlaybackHistoryController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reporting playback progress for user {UserId}", userId);
-            return StatusCode(500, new Error { Message = "Internal server error" });
+            return StatusCode(204, new Error { Message = "Internal server error" });
         }
     }
 }

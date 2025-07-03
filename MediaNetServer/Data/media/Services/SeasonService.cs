@@ -12,6 +12,7 @@ namespace MediaNetServer.Data.media.Services
         {
             _context = context;
         }
+        
 
         public async Task<List<Season>> GetSeasonsByMediaIdAsync(int seriesId)
         {
@@ -20,6 +21,23 @@ namespace MediaNetServer.Data.media.Services
                 .Where(s => s.MediaItem.TMDbId == seriesId)
                 .OrderBy(s => s.SeasonNumber)
                 .ToListAsync();
+        }
+
+        public async Task<Season> CreateOrGetSeasonAsync(int mediaId, int seasonNumber, DateTime firstAirdate)
+        {
+            var existing = await _context.Seasons
+                .FirstOrDefaultAsync(s => s.MediaId == mediaId && s.SeasonNumber == seasonNumber);
+            if (existing != null)
+                return existing;
+            var newSeason = new Season
+            {
+                MediaId = mediaId,
+                SeasonNumber = seasonNumber,
+                AirDate = firstAirdate
+            };
+            _context.Seasons.Add(newSeason);
+            await _context.SaveChangesAsync();
+            return newSeason;
         }
 
         public async Task<Season?> GetSeasonByIdAsync(int seasonId)
@@ -35,6 +53,11 @@ namespace MediaNetServer.Data.media.Services
             _context.Seasons.Add(season);
             await _context.SaveChangesAsync();
             return false;
+        }
+        public async Task<bool> ExistsAsync(int mediaId, int seasonNumber)
+        {
+            return await _context.Seasons
+                .AnyAsync(s => s.MediaId == mediaId && s.SeasonNumber == seasonNumber);
         }
 
         public async Task<Season?> UpdateSeasonAsync(int seasonId, Season season)

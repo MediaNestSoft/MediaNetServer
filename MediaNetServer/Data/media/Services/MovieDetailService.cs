@@ -37,12 +37,14 @@ namespace MediaNetServer.Data.media.Services
         
         
 
-        public async Task CreateAsync(MovieDetail detail, bool same)
+        public async Task CreateAsync(MovieDetail detail)
         {
-            if (same)
-                return;
             _context.MovieDetails.Add(detail);
             await _context.SaveChangesAsync();
+        }
+        public async Task<bool> ExistsAsync(int mediaId)
+        {
+            return await _context.MovieDetails.AnyAsync(md => md.MediaId == mediaId);
         }
 
         public async Task<bool> UpdateAsync(int mediaId, MovieDetail detail)
@@ -51,7 +53,7 @@ namespace MediaNetServer.Data.media.Services
             if (existing == null)
                 return false;
 
-            // ✅ 只更新简单字段，不处理导航属性
+            //只更新简单字段，不处理导航属性
             existing.Overview = detail.Overview;
             existing.Duration = detail.Duration;
 

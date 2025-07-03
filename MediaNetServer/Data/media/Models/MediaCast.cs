@@ -13,9 +13,9 @@ namespace MediaNetServer.Data.media.Models
 
         public int tmdbId { get; set; } // 外键关联 MediaItems
 
-        public string Name { get; set; } // 演员姓名
+        public string? Name { get; set; } // 演员姓名
 
-        public string Department { get; set; } // 角色名称或职位
+        public string? Department { get; set; } // 角色名称或职位
 
         public string? PersonUrl { get; set; } // 演员图像
 

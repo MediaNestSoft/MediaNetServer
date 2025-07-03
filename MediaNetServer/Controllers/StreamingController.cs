@@ -1,49 +1,52 @@
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace MediaNetServer.Controllers;
 
-/*
+
 [ApiController]
-[Route("stream")]
+[Route("playback")]
 public class StreamingController : ControllerBase
 {
     private readonly FilesService _filesService;
     private readonly MediaItemService _mediaItemService;
     private readonly EpisodesService _episodesService;
     private readonly ILogger<StreamingController> _logger;
+    private readonly MovieDetailService _movieDetailService;
 
     public StreamingController(FilesService filesService, MediaItemService mediaItemService,
-        EpisodesService episodesService, ILogger<StreamingController> logger)
+        EpisodesService episodesService, ILogger<StreamingController> logger, MovieDetailService movieDetailService)
     {
         _filesService = filesService;
         _mediaItemService = mediaItemService;
         _episodesService = episodesService;
         _logger = logger;
+        _movieDetailService = movieDetailService;
     }
 
-    [HttpGet("file/{fileId}")]
-    public async Task<IActionResult> StreamMedia(string fileId)
+    [HttpGet("stream")]
+    public async Task<IActionResult> StreamMedia([FromQuery]string fileId)
     {
         try
         {
-            var file = await _filesService.GetByIdAsync(fileId);
+            var file = await _filesService.GetFileByFid(fileId);
             if (file == null)
             {
                 return NotFound(new Error { Message = "File not found" });
             }
 
             // 检查文件是否存在
-            if (!System.IO.File.Exists(file.FilePath))
+            if (!System.IO.File.Exists(file.filePath))
             {
                 return NotFound(new Error { Message = "Physical file not found" });
             }
 
             // 返回文件流，支持Range请求
-            var fileStream = new FileStream(file.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var contentType = GetContentType(file.FilePath);
+            var fileStream = new FileStream(file.filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var contentType = GetContentType(file.filePath);
             
             return File(fileStream, contentType, enableRangeProcessing: true);
         }
@@ -54,6 +57,37 @@ public class StreamingController : ControllerBase
         }
     }
 
+    [HttpGet("movie/files")]
+    public async Task<IActionResult> GetMovieFiles([FromQuery] int mediaId)
+    {
+        try
+        {
+            var mediaItem = await _movieDetailService.GetMovieDurationAsync(mediaId);
+            var files = await _filesService.GetByIdAsync(mediaId);
+            var mediaFiles = files.Select(f => new MediaFile
+            {
+                FileId = f.fid.ToString(),
+                Size = 100,
+                Quality = "1080P",
+                Container = "mkv",
+                Language = "zh-CN",
+                Duration = (int)(mediaItem * 60)
+            }).ToList();
+
+            var response = new MediaFilesResponse
+            {
+                Files = mediaFiles
+            };
+
+            return Ok(response);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+/*
     [HttpGet("movie/{SeasonId}/files")]
     public async Task<IActionResult> GetMovieFiles(int mediaId)
     {
@@ -127,7 +161,7 @@ public class StreamingController : ControllerBase
                 seriesId, seasonNumber, episodeNumber);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
-    }
+    }*/
 
     private string GetContentType(string filePath)
     {
@@ -143,4 +177,4 @@ public class StreamingController : ControllerBase
             _ => "application/octet-stream"
         };
     }
-}*/
+}

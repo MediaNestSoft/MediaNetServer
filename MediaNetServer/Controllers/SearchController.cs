@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Org.OpenAPITools.Model;
 using MediaNetServer.Data.media.Services;
+using MediaNetServer.Models;
 using Microsoft.Extensions.Logging;
 using Org.OpenAPITools.Client;
 
@@ -38,29 +39,29 @@ public class SearchController : ControllerBase
                 .Take(limit)
                 .ToList();
             
-            var mediaItems = new List<MediaItem>();
+            var mediaItems = new List<LocalMediaItem>();
             foreach (var m in paged)
             {
                 bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
                 var typeEnum = isMovie
-                    ? MediaItem.TypeEnum.Movie
-                    : MediaItem.TypeEnum.Series;
+                    ? MediaType.Movie
+                    : MediaType.Series;
                 var seasonNum = await _seasonService.GetSeasonsByMediaIdAsync(m.TMDbId);
 
                 string? additional = isMovie
                     ? m.ReleaseDate.Year.ToString()
                     : seasonNum[0].SeasonNumber.ToString();
 
-                mediaItems.Add(new MediaItem(
-                    mediaId:    new Option<int?>(m.TMDbId),
-                    title:      new Option<string?>(m.Title),
-                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
-                    posterPath: new Option<string?>(m.PosterPath),
-                    additional: new Option<string?>(additional)
+                mediaItems.Add(new LocalMediaItem(
+                    tmDbId:    m.TMDbId,
+                    title:      m.Title,
+                    type:       typeEnum,
+                    posterPath: m.PosterPath,
+                    additional: additional
                 ));
             }
 
-            var response = new SearchResponse
+            var response = new LocalMediaListResponse
             {
                 Items    = mediaItems,
                 TotalCount = totalCount

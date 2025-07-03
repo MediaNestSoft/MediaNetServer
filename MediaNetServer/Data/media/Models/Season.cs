@@ -20,7 +20,7 @@ namespace MediaNetServer.Data.media.Models
 
         public string? SeasonName { get; set; } // 季名称
         
-        public string overview { get; set; } // 季概述
+        public string? overview { get; set; } // 季概述
         
         public DateTime AirDate { get; set; }
         
@@ -28,7 +28,7 @@ namespace MediaNetServer.Data.media.Models
         
         public string? posterPath { get; set; } // 海报路径
         
-        public float rating { get; set; } // 评分
+        public float? rating { get; set; } // 评分
 
         [BindNever]
         [JsonIgnore]

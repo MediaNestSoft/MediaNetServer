@@ -13,20 +13,21 @@ public class FilesService
         _context = context;
     }
 
-    // 查询所有 Files
-    public async Task<List<Files>> GetAllAsync()
-    {
-        return await _context.Files
-            .Include(f => f.MediaItem) // 如果需要关联查询MediaItem
-            .ToListAsync();
-    }
-
-    // 根据 id 查询单个 Files
-    public async Task<Files> GetByIdAsync(int id)
+    // 查询 Files
+    public async Task<Files> GetFileByFid(string fid)
     {
         return await _context.Files
             .Include(f => f.MediaItem)
-            .FirstOrDefaultAsync(f => f.fid == id);
+            .FirstOrDefaultAsync(f=> f.fid.ToString() == fid);
+    }
+
+    // 根据 id 查询单个 Files
+    public async Task<List<Files>> GetByIdAsync(int tmdbId)
+    {
+        return await _context.Files
+            .Include(f => f.MediaItem)
+            .Where(f => f.tmdbId == tmdbId)
+            .ToListAsync();
     }
 
     // 新增 Files

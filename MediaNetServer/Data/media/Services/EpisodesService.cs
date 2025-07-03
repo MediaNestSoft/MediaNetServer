@@ -68,6 +68,13 @@ namespace MediaNetServer.Data.media.Services
             _context.Episodes.Add(episode);
             await _context.SaveChangesAsync();
         }
+        public async Task<bool> ExistsAsync(int mediaId, int seasonId, int episodeNumber)
+        {
+            return await _context.Episodes
+                .AnyAsync(e => e.mediaId == mediaId &&
+                               e.SeasonId == seasonId &&
+                               e.episodeNumber == episodeNumber);
+        }
 
         // 更新剧集
         public async Task<bool> UpdateAsync(int epId, Episodes episode)

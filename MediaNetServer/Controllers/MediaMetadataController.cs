@@ -4,6 +4,7 @@ using MediaNetServer.Data.media.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Org.OpenAPITools.Client;
+using MediaNetServer.Models;
 
 namespace MediaNetServer.Controllers;
 
@@ -63,47 +64,48 @@ public class MediaMetadataController : ControllerBase
             if (mediaItem.Type == "Movie")
             {
                 var movieDetail = await _movieDetailService.GetByMediaIdAsync(mediaId);
-                var movieResponse = new MovieDetail(
-                    new Option<int?>(movieDetail.MediaItem.TMDbId),
-                    new Option<string?>(movieDetail.MediaItem.Title),
-                    new Option<MovieDetail.TypeEnum?>(MovieDetail.TypeEnum.Movie),
-                    new Option<string?>(movieDetail.Overview),
-                    new Option<List<string>?>(movieDetail.MediaItem.Genre),
-                    new Option<int?>(movieDetail.Duration),
-                    new Option<DateOnly?>(DateOnly.FromDateTime(movieDetail.MediaItem.ReleaseDate)),
-                    new Option<string?>(movieDetail.MediaItem.LogoPath),
-                    new Option<string?>(movieDetail.MediaItem.PosterPath),
-                    new Option<string?>(movieDetail.MediaItem.BackdropPath),
-                    new Option<float?>((float)movieDetail.MediaItem.Rating),
-                    new Option<string?>(movieDetail.MediaItem.Language)
+                var movieResponse = new LocalMovieDetail(
+                    movieDetail.MediaItem.TMDbId,
+                    movieDetail.MediaItem.Title,
+                    MediaType.Movie,
+                    movieDetail.Overview,
+                    movieDetail.MediaItem.Genre,
+                    movieDetail.Duration,
+                    DateOnly.FromDateTime(movieDetail.MediaItem.ReleaseDate),
+                    movieDetail.MediaItem.LogoPath,
+                    movieDetail.MediaItem.PosterPath,
+                    movieDetail.MediaItem.BackdropPath,
+                    (float)movieDetail.MediaItem.Rating,
+                    movieDetail.MediaItem.Language
                 );
-                var response = new GetMediaDetail200Response(movieResponse);
+                var response = movieResponse;
                 return Ok(response);
             }
+            /*
             else if (mediaItem.Type == "Series")
             {
                 var seriesDetail = await _seriesDetailService.GetByIdAsync(mediaId);
-                var seriesResponse = new SeriesDetail(
-                    new Option<int?>(seriesDetail.MediaItem.TMDbId),
-                    new Option<string?>(seriesDetail.MediaItem.Title),
-                    new Option<SeriesDetail.TypeEnum?>(SeriesDetail.TypeEnum.Series),
-                    new Option<string?>(seriesDetail.overview),
-                    new Option<List<string>?>(seriesDetail.MediaItem.Genre),
-                    new Option<DateOnly?>(DateOnly.FromDateTime(seriesDetail.firstAirDate)),
-                    new Option<DateOnly?>(DateOnly.FromDateTime(seriesDetail.lastAirDate)),
-                    new Option<int?>(seriesDetail.numberOfSeasons),
-                    new Option<int?>(seriesDetail.numberOfEpisodes),
-                    new Option<string?>(seriesDetail.MediaItem.LogoPath),
-                    new Option<string?>(seriesDetail.MediaItem.PosterPath),
-                    new Option<string?>(seriesDetail.MediaItem.BackdropPath),
-                    new Option<float?>((float)seriesDetail.MediaItem.Rating),
-                    new Option<string?>(seriesDetail.MediaItem.Language)
+                var seriesResponse = new LocalSeriesDetail(
+                    seriesDetail.MediaItem.TMDbId,
+                    seriesDetail.MediaItem.Title,
+                    MediaType.Series,
+                    seriesDetail.overview,
+                    seriesDetail.MediaItem.Genre,
+                    DateOnly.FromDateTime(seriesDetail.firstAirDate),
+                    DateOnly.FromDateTime(seriesDetail.lastAirDate),
+                    seriesDetail.numberOfSeasons,
+                    seriesDetail.numberOfEpisodes,
+                   seriesDetail.MediaItem.LogoPath,
+                    seriesDetail.MediaItem.PosterPath,
+                    seriesDetail.MediaItem.BackdropPath,
+                   (float)seriesDetail.MediaItem.Rating,
+                    seriesDetail.MediaItem.Language
                 );
 
-                var response = new GetMediaDetail200Response(seriesResponse);
+                var response = new LocalGetSeriesDetail200Response(seriesResponse);
                 return Ok(response);
             }
-
+*/
             return BadRequest(new Error { Message = "Unknown media type" });
         }
         catch (Exception ex)
@@ -111,6 +113,24 @@ public class MediaMetadataController : ControllerBase
             _logger.LogError(ex, "Error getting media detail for {SeasonId}", mediaId);
             return StatusCode(500, new Error { Message = "Internal server error" });
         }
+    }
+
+    [HttpGet("credits/movie")]
+    public async Task<IActionResult> GetMovieCredits([FromQuery] int mediaId)
+    {
+        var credits = await _mediaCastService.GetMovieCastAsync(mediaId);
+        var creditList = credits.Select(c => new Credit
+        {
+            Name = c.Name,
+            Department = c.Department,
+            PhotoPath = c.PersonUrl
+        }).ToList();
+        var limitedCredits = creditList.Take(20).ToList();
+        var response = new CreditsResponse
+        {
+            Credits = limitedCredits
+        };
+        return Ok(response);
     }
 
     [HttpGet("series/seasons/episodes/credits")]
@@ -123,9 +143,9 @@ public class MediaMetadataController : ControllerBase
             var credits = await _mediaCastService.GetEpisodeCastAsync(episodeId.tmdbId);
             var creditList = credits.Select(c => new Credit
             {
-                Name = c.Name,
-                Department = c.Department,
-                PhotoPath = c.PersonUrl
+                Name = null,
+                Department = null,
+                PhotoPath = null
             }).ToList();
 
             var response = new CreditsResponse
@@ -262,8 +282,6 @@ public class MediaMetadataController : ControllerBase
                 return NotFound(new Error { Message = "Media not found" });
             }
 
-            // 这里需要实现获取用户对媒体的状态逻辑
-            // 暂时返回基本信息
             bool fav = await _playlistService.IsFavoriteAsync(userId, mediaId);
             bool cnt = await _playlistService.IsInContinueWatchAsync(userId, mediaId);
 
@@ -297,34 +315,31 @@ public class MediaMetadataController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            var mediaItems = new List<MediaItem>();
+            var mediaItems = new List<LocalMediaItem>();
             foreach (var m in pageMedia)
             {
                 bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
                 var typeEnum = isMovie
-                    ? MediaItem.TypeEnum.Movie
-                    : MediaItem.TypeEnum.Series;
+                    ? MediaType.Movie
+                    : MediaType.Series;
 
                 string? additional = isMovie
                     ? m.ReleaseDate.Year.ToString()
                     : (await _episodesService.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
 
-                mediaItems.Add(new MediaItem(
-                    mediaId: new Option<int?>(m.TMDbId),
-                    title: new Option<string?>(m.Title),
-                    type: new Option<MediaItem.TypeEnum?>(typeEnum),
-                    posterPath: new Option<string?>(m.PosterPath),
-                    additional: !string.IsNullOrEmpty(additional)
-                        ? new Option<string?>(additional)
-                        : default
+                mediaItems.Add(new LocalMediaItem(
+                    tmDbId: m.TMDbId,
+                    title: m.Title,
+                    type: typeEnum,
+                    posterPath: m.PosterPath,
+                    additional: additional
                 ));
             }
 
-            var response = new MediaListResponse
-            {
-                Items = mediaItems,
-                TotalCount = totalCount
-            };
+            var response = new LocalMediaListResponse(
+                mediaItems,
+                totalCount
+            );
             return Ok(response);
         }
         catch (Exception ex)

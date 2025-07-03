@@ -45,7 +45,7 @@ public class AuthController : ControllerBase
                 RefreshToken = refreshToken,
                 ExpiresAt = expiresAt
             };
-            await _tokenService.AddToken(token);
+             _tokenService.AddToken(token);
             
             var response = new LoginResponse
             {
@@ -104,7 +104,7 @@ public class AuthController : ControllerBase
             token.AccessToken = newAccessToken;
             token.RefreshToken = newRefreshToken;
             token.ExpiresAt = expiresAt;
-            await _tokenService.UpdateToken(token);
+             _tokenService.UpdateToken(token);
             
             var response = new LoginResponse
             {

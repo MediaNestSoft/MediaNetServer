@@ -15,10 +15,11 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 获取所有 MediaCast（即演员信息）
-        public async Task<IEnumerable<MediaCast>> GetAllAsync()
+        public async Task<List<MediaCast>> GetMovieCastAsync(int movieId)
         {
-            // 使用 EF Core 的异步查询，获取所有 MediaCast 数据并返回
-            return await _context.MediaCasts.ToListAsync();
+            return await _context.MediaCasts
+                .Where(c => c.tmdbId == movieId)
+                .ToListAsync();
         }
         
         public async Task<List<MediaCast>> GetEpisodeCastAsync(int seriesId)

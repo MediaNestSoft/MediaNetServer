@@ -3,6 +3,7 @@ using Org.OpenAPITools.Model;
 using Org.OpenAPITools.Client;
 using MediaNetServer.Data.media.Services;
 using Microsoft.Extensions.Logging;
+using MediaNetServer.Models;
 
 namespace MediaNetServer.Controllers;
 
@@ -65,34 +66,31 @@ public class PersonalizedViewsController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            var mediaItems = new List<MediaItem>();
+            var mediaItems = new List<LocalMediaItem>();
             foreach (var m in pageMedia)
             {
                 bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
                 var typeEnum = isMovie
-                    ? MediaItem.TypeEnum.Movie
-                    : MediaItem.TypeEnum.Series;
+                    ? MediaType.Movie
+                    : MediaType.Series;
 
                 string? additional = isMovie
                     ? m.ReleaseDate.Year.ToString()
                     : (await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
 
-                mediaItems.Add(new MediaItem(
-                    mediaId:    new Option<int?>(m.TMDbId),
-                    title:      new Option<string?>(m.Title),
-                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
-                    posterPath: new Option<string?>(m.PosterPath),
-                    additional: !string.IsNullOrEmpty(additional)
-                        ? new Option<string?>(additional)
-                        : default
+                mediaItems.Add(new LocalMediaItem(
+                    tmDbId:    m.TMDbId,
+                    title:      m.Title,
+                    type:        typeEnum,
+                    posterPath: m.PosterPath,
+                    additional: additional
                 ));
             }
 
-            var response = new MediaListResponse
-            {
-                Items      = mediaItems,
-                TotalCount = totalCount
-            };
+            var response = new LocalMediaListResponse(
+                mediaItems,
+                totalCount
+                );
 
             return Ok(response);
         }
@@ -122,34 +120,31 @@ public class PersonalizedViewsController : ControllerBase
                 .Take(limit)
                 .ToList();
 
-            var mediaItems = new List<MediaItem>();
+            var mediaItems = new List<LocalMediaItem>();
             foreach (var m in pageMedia)
             {
                 bool isMovie = string.Equals(m.Type, "movie", StringComparison.OrdinalIgnoreCase);
                 var typeEnum = isMovie
-                    ? MediaItem.TypeEnum.Movie
-                    : MediaItem.TypeEnum.Series;
+                    ? MediaType.Movie
+                    : MediaType.Series;
 
                 string? additional = isMovie
                     ? m.ReleaseDate.Year.ToString()
                     : (await _episodesSvc.GetByEpisodeImdbIdAsync(m.TMDbId))?.seasonNumber.ToString();
 
-                mediaItems.Add(new MediaItem(
-                    mediaId:    new Option<int?>(m.TMDbId),
-                    title:      new Option<string?>(m.Title),
-                    type:       new Option<MediaItem.TypeEnum?>(typeEnum),
-                    posterPath: new Option<string?>(m.PosterPath),
-                    additional: !string.IsNullOrEmpty(additional)
-                        ? new Option<string?>(additional)
-                        : default
+                mediaItems.Add(new LocalMediaItem(
+                    tmDbId:    m.TMDbId,
+                    title:      m.Title,
+                    type:       typeEnum,
+                    posterPath: m.PosterPath,
+                    additional: additional
                 ));
             }
 
-            var response = new MediaListResponse
-            {
-                Items = mediaItems,
-                TotalCount = totalCount
-            };
+            var response = new LocalMediaListResponse(
+                mediaItems,
+                totalCount
+                );
 
             return Ok(response);
         }

@@ -12,6 +12,12 @@ namespace MediaNetServer.Data.media.Services
         {
             _context = context;
         }
+        
+        public async Task<bool> ExistsAsync(int tmdbId, string imageType)
+        {
+            return await _context.Images.AnyAsync(img =>
+                img.tmdbId == tmdbId && img.imageType == imageType);
+        }
 
         // 获取所有 Images
         public async Task<List<Images>> GetAllAsync()

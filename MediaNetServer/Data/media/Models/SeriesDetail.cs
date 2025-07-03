@@ -21,9 +21,9 @@ namespace MediaNetServer.Data.media.Models
         
         public DateTime lastAirDate { get; set; } // 最后播出日期
 
-        public int numberOfSeasons { get; set; } // 季数
+        public int? numberOfSeasons { get; set; } // 季数
 
-        public int numberOfEpisodes { get; set; } // 集数
+        public int? numberOfEpisodes { get; set; } // 集数
         
         public string overview { get; set; } // 简介
 

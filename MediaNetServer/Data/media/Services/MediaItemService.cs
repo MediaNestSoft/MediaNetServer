@@ -41,18 +41,18 @@ namespace MediaNetServer.Data.media.Services
         }
 
         // 创建媒体项
-        public async Task<bool> CreateMediaItemAsync(MediaItem mediaItem)
+        public async Task<MediaItem> CreateOrGetMediaItemAsync(MediaItem mediaItem)
         {
-            bool exists = await _context.MediaItems
-                .AnyAsync(mi => mi.TMDbId == mediaItem.TMDbId);
-            if (exists)
-            {
-                return true;
-            }
+            var existing = await _context.MediaItems
+                .FirstOrDefaultAsync(mi => mi.TMDbId == mediaItem.TMDbId);
+
+            if (existing != null)
+                return existing;
 
             _context.MediaItems.Add(mediaItem);
             await _context.SaveChangesAsync();
-            return false;
+
+            return mediaItem; // EF 会填充 MediaId
         }
         
         public async Task<List<MediaItem>> SearchByTitleAsync(string q)
