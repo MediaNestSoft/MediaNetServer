@@ -123,7 +123,7 @@ public class MediaMetadataController : ControllerBase
         {
             Name = c.Name,
             Department = c.Department,
-            PhotoPath = c.PersonUrl
+            PhotoPath = c.PersonUrl ?? string.Empty
         }).ToList();
         var limitedCredits = creditList.Take(20).ToList();
         var response = new CreditsResponse

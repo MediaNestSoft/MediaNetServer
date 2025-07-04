@@ -46,11 +46,9 @@ public class SearchController : ControllerBase
                 var typeEnum = isMovie
                     ? MediaType.Movie
                     : MediaType.Series;
-                var seasonNum = await _seasonService.GetSeasonsByMediaIdAsync(m.TMDbId);
+                //var seasonNum = await _seasonService.GetSeasonsByMediaIdAsync(m.TMDbId);
 
-                string? additional = isMovie
-                    ? m.ReleaseDate.Year.ToString()
-                    : seasonNum[0].SeasonNumber.ToString();
+                string? additional =  m.ReleaseDate.Year.ToString();
 
                 mediaItems.Add(new LocalMediaItem(
                     tmDbId:    m.TMDbId,

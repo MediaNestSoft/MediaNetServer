@@ -69,13 +69,13 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var token = _tokenService.GetTokenByRefreshToken(request.RefreshToken);
-            if (token != null)
-            {
-                await _tokenService.DeleteToken(token.Id);
+            //var token = _tokenService.GetTokenByRefreshToken(request.RefreshToken);
+            //if (token != null)
+            //{
+                //await _tokenService.DeleteToken(token.Id);
                 return Ok();
-            }
-            return BadRequest(new Error { Message = "Invalid refresh token" });
+            //}
+            //return BadRequest(new Error { Message = "Invalid refresh token" });
         }
         catch (Exception ex)
         {

@@ -69,7 +69,8 @@ namespace MediaNetServer.Data.media.Services
                     TMDbId = m.TMDbId,
                     Title = m.Title,
                     Type = m.Type,
-                    PosterPath = m.PosterPath
+                    PosterPath = m.PosterPath,
+                    ReleaseDate = m.ReleaseDate
                 };
 
                 result.Add(mediaItem);
